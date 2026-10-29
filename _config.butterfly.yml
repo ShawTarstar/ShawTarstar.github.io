@@ -1,0 +1,47 @@
+# Butterfly 主题配置
+# 完整配置说明: https://butterfly.js.org/posts/4aa8abbe/
+# 默认配置参考: node_modules/hexo-theme-butterfly/_config.yml
+# 这里只覆盖需要自定义的项, 其余使用主题默认值
+
+# 导航栏
+nav:
+  logo: # 站点 Logo 图片路径, 例如 /img/logo.png
+  display_title: true
+  fixed: false
+
+# 菜单 (只保留已存在的页面, 后续新增页面时再补充)
+menu:
+  首页: / || fas fa-home
+  时间轴: /archives/ || fas fa-archive
+  标签: /tags/ || fas fa-tags
+  分类: /categories/ || fas fa-folder-open
+  # 关于: /about/ || fas fa-heart
+  # 友链: /link/ || fas fa-link
+
+# 代码块
+highlight_theme: mac light
+copy:
+  enable: true
+
+# 首页文章摘要自动截取长度
+auto_excerpt:
+  enable: true
+  length: 200
+
+# 侧边栏
+side:
+  enable: true
+  position: right
+
+# 页脚
+footer:
+  owner:
+    enable: true
+    since: 2026
+  custom_text: # 自定义页脚文字, 例如备案号
+  copyright: true
+
+# 图片懒加载
+lazyload:
+  enable: true
+  field: post
