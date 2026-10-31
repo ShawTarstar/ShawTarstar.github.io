@@ -74,3 +74,40 @@ footer:
 lazyload:
   enable: true
   field: post
+
+# 暗黑模式设置
+darkmode:
+  # 是否启用暗黑模式
+  enable: true
+  # 切换暗黑/明亮模式的按钮
+  button: true
+  # 是否自动切换暗黑/明亮模式
+  # autoChangeMode: 1  #跟随系统设置，如果系统不支持暗黑模式，则在晚上 6 点到早上 6 点之间切换暗黑模式
+  autoChangeMode: 2  #在晚上 6 点到早上 6 点之间切换暗黑模式
+  # autoChangeMode: false  不自动切换
+  # autoChangeMode: false
+  # 设置明亮模式时间，值在 0 到 24 之间。如果未设置，默认值为 6 和 18
+  # start:
+  # end:
+
+# ===== 主题色: 黑色系 =====
+# 把默认的蓝色 (#49B1F5) 换成近黑色 (#1c1c1e)
+# 注意: 颜色值必须用双引号包起来, 否则构建报错
+# 想要纯黑可把 #1c1c1e 全部换成 #000000
+theme_color:
+  enable: true
+  main: "#1c1c1e"                    # 主色 (按钮/链接高亮/选中等)
+  paginator: "#1c1c1e"               # 分页器
+  button_hover: "#48484a"            # 按钮悬停 (深灰, 与主色区分)
+  text_selection: "#3a3a3c"          # 文字选中背景
+  link_color: "#49494b"              # 正文链接颜色
+  meta_color: "#858585"              # 文章元信息 (日期等)
+  hr_color: "#bfbfc4"                # 分割线
+  code_foreground: "#f47466"         # 行内代码文字 (保留红色点缀)
+  code_background: "rgba(27, 31, 35, .05)"  # 行内代码背景
+  toc_color: "#1c1c1e"               # 目录选中项
+  blockquote_padding_color: "#1c1c1e"      # 引用块左侧竖线
+  blockquote_background_color: "#1c1c1e"   # 引用块背景 (自动加 10% 透明度)
+  scrollbar_color: "#1c1c1e"         # 滚动条
+  meta_theme_color_light: "#ffffff"  # 浏览器状态栏 (亮色模式)
+  meta_theme_color_dark: "#0d0d0d"   # 浏览器状态栏 (暗色模式)
