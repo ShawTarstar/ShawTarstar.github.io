@@ -1,0 +1,14 @@
+/* ===== 自定义样式 ===== */
+
+/* 首页大标题打字机光标 */
+#site-title.title-typing {
+  display: inline-block; /* 让光标紧贴文字而不是贴到行尾 */
+  white-space: nowrap;
+  border-right: 3px solid #fff;
+  animation: title-cursor-blink 0.8s step-end infinite;
+}
+
+@keyframes title-cursor-blink {
+  0%, 100% { border-color: #fff; }
+  50% { border-color: transparent; }
+}

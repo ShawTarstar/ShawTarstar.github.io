@@ -3,6 +3,35 @@
 # 默认配置参考: node_modules/hexo-theme-butterfly/_config.yml
 # 这里只覆盖需要自定义的项, 其余使用主题默认值
 
+# ===== 图片相关 =====
+# 用法: 把图片放到 source/img/ 目录, 填 /img/文件名; 也可以直接填网络图片 URL
+# 留空 = 使用主题默认图
+
+# 首页顶部大图 (刚进页面看到的那张)
+index_img: /img/banner.jpg
+
+# 文章页顶部默认大图 (文章没单独设置 top_img 时用这张)
+# top_img: /img/banner.jpg
+
+# 头像 (侧边栏圆形头像)
+avatar:
+  img: /img/avatar.jpeg
+
+# ===== 标题字体 =====
+# Righteous: 科技感英文字体, 应用于首页大标题 / 导航栏标题 / 侧边栏作者名
+# font_link 使用 Google Fonts 国内镜像, 如需官方源改为 https://fonts.googleapis.com/css2?family=Righteous&display=swap
+blog_title_font:
+  font_link: https://fonts.googleapis.cn/css2?family=Righteous&display=swap
+  font_family: Righteous, 'PingFang SC', 'Microsoft YaHei', sans-serif
+
+# ===== 自定义文件注入 =====
+# custom.css: 打字机光标样式; title-typewriter.js: 首页大标题打字机效果
+inject:
+  head:
+    - <link rel="stylesheet" href="/css/custom.css">
+  bottom:
+    - <script src="/js/title-typewriter.js"></script>
+
 # 导航栏
 nav:
   logo: # 站点 Logo 图片路径, 例如 /img/logo.png
