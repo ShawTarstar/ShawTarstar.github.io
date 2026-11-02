@@ -34,11 +34,20 @@ diary-YYYYMMDD-HHmmss-xxx.md
 ```markdown
 ---
 title: "标题"
+creator: "chitori"
 date: 2026-11-02T16:49:41+08:00
 updated: 2026-11-02T16:49:41+08:00
 ---
 
 正文内容
+```
+
+`creator` 只允许以下三个值：
+
+```text
+chitori
+tarstar
+kaxx
 ```
 
 ## 注意

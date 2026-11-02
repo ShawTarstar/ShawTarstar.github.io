@@ -728,10 +728,24 @@
     box-shadow: 0 0 18px rgba(90, 220, 255, 0.1);
   }
   .diary-item-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 9px;
     letter-spacing: 1px;
     color: rgba(140, 230, 255, 0.45);
   }
+  .diary-item-creator {
+    padding: 1px 5px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 8px;
+    line-height: 1.4;
+    letter-spacing: 1px;
+  }
+  .creator-chitori { color: #ff8fbe; }
+  .creator-tarstar { color: #7fe8ff; }
+  .creator-kaxx { color: #c9a7ff; }
   .diary-item-title {
     max-width: 100%;
     overflow: hidden;
@@ -763,11 +777,72 @@
   }
   .diary-main-head {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
     font-size: 10px;
     letter-spacing: 1px;
     color: rgba(140, 230, 255, 0.45);
+  }
+  .diary-meta {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .diary-creator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+  }
+  .diary-creator-label {
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.35);
+  }
+  .diary-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .diary-select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    pointer-events: none;
+    color: currentColor;
+    font-size: 9px;
+    transform: translateY(-50%);
+  }
+  #diaryCreator {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 3px 18px 3px 8px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    outline: 0;
+    background: rgba(0, 0, 0, 0.25);
+    font: 10px/1.4 "Cascadia Code", Consolas, monospace;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  #diaryCreator:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+  #diaryCreator:focus-visible {
+    outline: 1px solid rgba(160, 240, 255, 0.6);
+    outline-offset: 2px;
+  }
+  #diaryCreator.creator-chitori { color: #ff8fbe; }
+  #diaryCreator.creator-tarstar { color: #7fe8ff; }
+  #diaryCreator.creator-kaxx { color: #c9a7ff; }
+  #diaryCreator option {
+    background: #06111f;
+    color: #cfefff;
   }
   .diary-chars {
     color: rgba(255, 120, 190, 0.45);
@@ -1018,7 +1093,17 @@
       </aside>
       <main class="diary-main">
         <div class="diary-main-head">
-          <span class="diary-meta" id="diaryMeta">NEW ENTRY // 未保存</span>
+          <span class="diary-meta" id="diaryMeta">NEW ENTRY // VIEW</span>
+          <div class="diary-creator">
+            <span class="diary-creator-label">BY</span>
+            <span class="diary-select-wrap">
+              <select id="diaryCreator" class="creator-chitori" aria-label="日记创建人" disabled>
+                <option value="chitori">chitori</option>
+                <option value="tarstar">tarstar</option>
+                <option value="kaxx">kaxx</option>
+              </select>
+            </span>
+          </div>
           <span class="diary-chars" id="diaryChars">0 chars</span>
         </div>
         <input id="diaryTitle" type="text" maxlength="80" autocomplete="off" placeholder="给今天起个名字……" aria-label="日记标题" readonly>
@@ -2759,6 +2844,7 @@ const DIARY_REPO = 'ShawTarstar/our-diary';
 const DIARY_BRANCH = 'main';
 const DIARY_DIR = 'diaries';
 const DIARY_API = 'https://api.github.com';
+const DIARY_CREATORS = ['chitori', 'tarstar', 'kaxx'];
 
 const diaryOverlay = document.getElementById('diaryOverlay');
 const diaryWindow = document.getElementById('diaryWindow');
@@ -2768,6 +2854,7 @@ const diaryList = document.getElementById('diaryList');
 const diaryCount = document.getElementById('diaryCount');
 const diaryTitle = document.getElementById('diaryTitle');
 const diaryContent = document.getElementById('diaryContent');
+const diaryCreator = document.getElementById('diaryCreator');
 const diaryMeta = document.getElementById('diaryMeta');
 const diaryChars = document.getElementById('diaryChars');
 const diarySaveState = document.getElementById('diarySaveState');
@@ -2788,6 +2875,7 @@ let diaryActiveId = null;
 let diaryDirty = false;
 let diaryEditing = false;
 let diaryEditSnapshot = null;
+let diaryLastCreator = 'chitori';
 let diaryCloseArmed = false;
 let diaryCloseTimer = null;
 let diaryClockTimer = null;
@@ -2806,6 +2894,18 @@ function diaryTime(ts) {
 function formatDiaryDate(ts) {
   const d = new Date(ts);
   return d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+
+function normalizeDiaryCreator(value) {
+  const v = String(value || '').toLowerCase();
+  return DIARY_CREATORS.includes(v) ? v : 'chitori';
+}
+
+function applyDiaryCreator(value) {
+  const creator = normalizeDiaryCreator(value);
+  diaryCreator.value = creator;
+  diaryCreator.className = 'creator-' + creator;
+  return creator;
 }
 
 function isoLocal(ts) {
@@ -2837,9 +2937,10 @@ function newDiaryFileName(ts) {
   return 'diary-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds()) + '-' + rand + '.md';
 }
 
-function buildDiaryMarkdown(title, content, createdAt, updatedAt) {
+function buildDiaryMarkdown(title, content, createdAt, updatedAt, creator) {
   return '---\n' +
     'title: ' + JSON.stringify(title || '无题') + '\n' +
+    'creator: ' + JSON.stringify(normalizeDiaryCreator(creator)) + '\n' +
     'date: ' + isoLocal(createdAt) + '\n' +
     'updated: ' + isoLocal(updatedAt) + '\n' +
     '---\n\n' +
@@ -2849,6 +2950,7 @@ function buildDiaryMarkdown(title, content, createdAt, updatedAt) {
 function parseDiaryMarkdown(name, text) {
   let title = name.replace(/\.md$/i, '');
   let content = text;
+  let creator = 'chitori';
   let createdAt = 0;
   let updatedAt = 0;
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
@@ -2866,6 +2968,7 @@ function parseDiaryMarkdown(name, text) {
       return v;
     };
     title = get('title') || title;
+    creator = normalizeDiaryCreator(get('creator') || creator);
     const d = Date.parse(get('date'));
     const u = Date.parse(get('updated'));
     createdAt = Number.isNaN(d) ? 0 : d;
@@ -2878,7 +2981,7 @@ function parseDiaryMarkdown(name, text) {
     if (!createdAt) createdAt = fallback;
     if (!updatedAt) updatedAt = createdAt;
   }
-  return { name, title, content, createdAt, updatedAt };
+  return { name, title, content, creator, createdAt, updatedAt };
 }
 
 function ghHeaders(extra) {
@@ -2957,6 +3060,7 @@ function setDiaryEditing(on) {
   diaryEditing = on;
   diaryTitle.readOnly = !on;
   diaryContent.readOnly = !on;
+  diaryCreator.disabled = !on;
   diarySaveBtn.disabled = !on;
   diaryEditBtn.textContent = on ? '取消' : '编辑';
   diaryEditBtn.classList.toggle('active', on);
@@ -2967,7 +3071,7 @@ function setDiaryEditing(on) {
 
 function startEditing() {
   if (diaryEditing) return;
-  diaryEditSnapshot = { title: diaryTitle.value, content: diaryContent.value };
+  diaryEditSnapshot = { title: diaryTitle.value, content: diaryContent.value, creator: diaryCreator.value };
   diaryDirty = false;
   setDiaryEditing(true);
   setDiaryStatus(diaryActiveId ? 'EDITING // 修改后点击保存' : 'EDITING // 新日记，保存后写入仓库', 'warn');
@@ -2979,6 +3083,7 @@ function cancelEditing() {
   if (diaryEditSnapshot) {
     diaryTitle.value = diaryEditSnapshot.title;
     diaryContent.value = diaryEditSnapshot.content;
+    applyDiaryCreator(diaryEditSnapshot.creator);
   }
   diaryDirty = false;
   setDiaryEditing(false);
@@ -3034,7 +3139,14 @@ function renderDiaryList() {
     btn.className = 'diary-item' + (entry.id === diaryActiveId ? ' active' : '');
     const date = document.createElement('span');
     date.className = 'diary-item-date';
-    date.textContent = formatDiaryDate(entry.updatedAt);
+    const dateText = document.createElement('span');
+    dateText.textContent = formatDiaryDate(entry.updatedAt);
+    const creator = normalizeDiaryCreator(entry.creator);
+    const creatorBadge = document.createElement('span');
+    creatorBadge.className = 'diary-item-creator creator-' + creator;
+    creatorBadge.textContent = creator;
+    date.appendChild(dateText);
+    date.appendChild(creatorBadge);
     const title = document.createElement('span');
     title.className = 'diary-item-title';
     title.textContent = entry.title;
@@ -3200,6 +3312,8 @@ async function connectDiary() {
     diaryActiveId = latest.id;
     diaryTitle.value = latest.title;
     diaryContent.value = latest.content;
+    diaryLastCreator = latest.creator;
+    applyDiaryCreator(latest.creator);
     diaryDirty = false;
     resetDiaryDelete();
     setDiaryEditing(false);
@@ -3236,12 +3350,13 @@ async function saveDiary(silent) {
   setDiaryStatus('SYNCING // 正在提交到 GitHub…', 'warn');
   const now = Date.now();
   const entry = diaryEntries.find(e => e.id === diaryActiveId);
+  const creator = normalizeDiaryCreator(diaryCreator.value);
   const createdAt = entry ? entry.createdAt : now;
   const fileName = entry ? entry.name : newDiaryFileName(now);
   const path = entry ? entry.path : DIARY_DIR + '/' + fileName;
-  const markdown = buildDiaryMarkdown(title || '无题', content, createdAt, now);
+  const markdown = buildDiaryMarkdown(title || '无题', content, createdAt, now, creator);
   const body = {
-    message: 'diary: ' + (title || '无题'),
+    message: 'diary: [' + creator + '] ' + (title || '无题'),
     content: encodeBase64Utf8(markdown),
     branch: DIARY_BRANCH
   };
@@ -3259,6 +3374,7 @@ async function saveDiary(silent) {
     if (entry) {
       entry.title = title || '无题';
       entry.content = content;
+      entry.creator = creator;
       entry.updatedAt = now;
       entry.sha = sha || entry.sha;
     } else {
@@ -3269,12 +3385,14 @@ async function saveDiary(silent) {
         sha,
         title: title || '无题',
         content,
+        creator,
         createdAt: now,
         updatedAt: now
       };
       diaryEntries.push(newEntry);
       diaryActiveId = path;
     }
+    diaryLastCreator = creator;
     if (!title) diaryTitle.value = '无题';
     diaryDirty = false;
     setDiaryEditing(false);
@@ -3310,6 +3428,8 @@ async function selectDiary(id) {
   diaryActiveId = id;
   diaryTitle.value = entry.title;
   diaryContent.value = entry.content;
+  diaryLastCreator = entry.creator;
+  applyDiaryCreator(entry.creator);
   diaryDirty = false;
   resetDiaryDelete();
   setDiaryEditing(false);
@@ -3327,10 +3447,11 @@ async function newDiary(focus) {
   diaryActiveId = null;
   diaryTitle.value = '';
   diaryContent.value = '';
+  applyDiaryCreator(diaryLastCreator);
   diaryDirty = false;
   resetDiaryDelete();
   renderDiaryList();
-  diaryEditSnapshot = { title: '', content: '' };
+  diaryEditSnapshot = { title: '', content: '', creator: diaryLastCreator };
   setDiaryEditing(true);
   updateDiaryMeta();
   setDiaryStatus('EDITING // 新建日记', 'warn');
@@ -3406,8 +3527,9 @@ function exportDiaryMarkdown() {
   const content = diaryContent.value;
   const now = Date.now();
   const entry = diaryEntries.find(e => e.id === diaryActiveId);
+  const creator = normalizeDiaryCreator(diaryCreator.value);
   const createdAt = entry ? entry.createdAt : now;
-  const markdown = buildDiaryMarkdown(title, content, createdAt, now);
+  const markdown = buildDiaryMarkdown(title, content, createdAt, now, creator);
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3445,6 +3567,8 @@ async function openDiary() {
     diaryActiveId = latest.id;
     diaryTitle.value = latest.title;
     diaryContent.value = latest.content;
+    diaryLastCreator = latest.creator;
+    applyDiaryCreator(latest.creator);
     diaryDirty = false;
     setDiaryEditing(false);
     setDiaryStatus('VIEW // 已载入', 'ok');
@@ -3452,6 +3576,7 @@ async function openDiary() {
     diaryActiveId = null;
     diaryTitle.value = '';
     diaryContent.value = '';
+    applyDiaryCreator(diaryLastCreator);
     diaryDirty = false;
     setDiaryEditing(false);
     if (!diaryLoaded) {
@@ -3511,6 +3636,13 @@ diaryEditBtn.addEventListener('click', () => {
 });
 diaryTitle.addEventListener('input', onDiaryInput);
 diaryContent.addEventListener('input', onDiaryInput);
+diaryCreator.addEventListener('change', () => {
+  if (!diaryEditing) return;
+  applyDiaryCreator(diaryCreator.value);
+  diaryDirty = true;
+  updateDiaryMeta();
+  setDiaryStatus('EDITING // 未保存', 'warn');
+});
 diaryTitle.addEventListener('keydown', (e) => {
   if (e.isComposing || !diaryEditing) return;
   if (e.key === 'Enter') {
@@ -3550,6 +3682,7 @@ diaryTokenInput.addEventListener('keydown', (e) => {
 });
 
 setDiaryRepoState('read');
+applyDiaryCreator(diaryLastCreator);
 
 /* ============ 7. 启动 ============ */
 resizeAll();
