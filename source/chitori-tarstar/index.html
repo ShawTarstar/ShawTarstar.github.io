@@ -3258,7 +3258,8 @@ function buildHints() {
 
 const SOUND_SOURCES = {
   meep: ['sounds/meep.mp3', 'sounds/meep.wav', 'sounds/meep.ogg'],
-  guagua: ['sounds/guagua.mp3', 'sounds/guagua.wav', 'sounds/guagua.ogg']
+  guagua: ['sounds/guagua.mp3', 'sounds/guagua.wav', 'sounds/guagua.ogg'],
+  gugugu: ['sounds/gugugu.mp3', 'sounds/gugugu.wav', 'sounds/gugugu.ogg']
 };
 const soundPlayers = new Map();
 
@@ -3317,6 +3318,10 @@ const COMMAND_DEFS = [
   { cmd: 'guagua', group: '音效', desc: '播放夜鹭音效', run: () => {
       termLine('♪ GUAGUA', 'ok');
       playSound('guagua', '夜鹭');
+    } },
+  { cmd: 'gugugu', group: '音效', desc: '播放斑鸠音效', run: () => {
+      termLine('♪ GUGUGU', 'ok');
+      playSound('gugugu', '斑鸠');
     } },
   { cmd: 'help', group: '帮助', desc: '查看所有命令', run: () => { setPanel('hints', true); showHelp(); } },
   { cmd: 'meteor', group: '特效', desc: '来一场流星雨', run: () => {
