@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<title>chitori &#10022; tarstar</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #02040c;
+  }
+  /* WebGL 失败时的降级背景 */
+  body.no-webgl {
+    background:
+      radial-gradient(ellipse at 28% 26%, rgba(70,45,130,0.28), transparent 58%),
+      radial-gradient(ellipse at 78% 72%, rgba(25,55,120,0.24), transparent 55%),
+      radial-gradient(ellipse at 55% 45%, #060a1c 0%, #010208 100%);
+  }
+  #glCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    cursor: grab;
+  }
+  #glCanvas.dragging {
+    cursor: grabbing;
+  }
+  #vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,5,0.38) 100%);
+  }
+  #hint {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    z-index: 3;
+    pointer-events: none;
+    font: 300 12px/1 "Segoe UI", "Microsoft YaHei", sans-serif;
+    letter-spacing: 2px;
+    color: rgba(190,214,255,0.55);
+    text-shadow: 0 0 8px rgba(80,120,255,0.5);
+    transition: opacity 1.2s ease;
+    opacity: 1;
+    white-space: nowrap;
+  }
+  #hint.hide { opacity: 0; }
+  #sky {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    cursor: crosshair;
+  }
+</style>
+</head>
+<body>
+<canvas id="glCanvas"></canvas>
+<canvas id="sky"></canvas>
+<div id="vignette"></div>
+<div id="hint">拖拽移动视角 · 滚轮推进 · 双击复位</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+/* ================================================================
+   chitori ✦ tarstar — 3D 星空纪念页
+   WebGL 层: 写实土星(程序化着色器) + 真实结构星环 + 3D 数字星群
+             + 星云天穹 + 背景星 + bloom
+   2D 层:   说明文字 / 流星 / 签名（WebGL 失败时数字也在本层降级渲染）
+   ================================================================ */
+
+/* ============ 0. 日期计算 ============ */
+const TARGET = new Date(2026, 5, 22); // 2026 年 6 月 22 日（本地时区）
+const nowD = new Date();
+const todayD = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate());
+const diffDays = Math.round((todayD - TARGET) / 86400000);
+const absDays = Math.abs(diffDays);
+const numberText = String(absDays);
+let captionText;
+if (diffDays > 0) captionText = '距离 2026.06.22 已 ' + absDays + ' 天';
+else if (diffDays < 0) captionText = '距离 2026.06.22 还有 ' + absDays + ' 天';
+else captionText = '2026.06.22 · 就是今天';
+
+/* ============ 1. 全局状态 ============ */
+let W = window.innerWidth, H = window.innerHeight;
+const mouse = { x: -9999, y: -9999, px: -9999, py: -9999, parY: 0, parX: 0, parYCur: 0, parXCur: 0 };
+
+function onMove(x, y) {
+  mouse.px = mouse.x; mouse.py = mouse.y;
+  mouse.x = x; mouse.y = y;
+  mouse.parY = (x / W - 0.5) * 0.5;
+  mouse.parX = (y / H - 0.5) * 0.3;
+}
+window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+window.addEventListener('mouseleave', () => { mouse.x = mouse.y = -9999; mouse.parY = mouse.parX = 0; });
+window.addEventListener('touchmove', e => {
+  if (e.touches.length) onMove(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+window.addEventListener('touchend', () => { mouse.x = mouse.y = -9999; mouse.parY = mouse.parX = 0; });
+
+/* ============ 2. 数字采样（WebGL 与降级 2D 共用） ============ */
+const rawPoints = [];
+let rawW = 1, rawH = 1;
+(function sampleNumber() {
+  const fontSize = 240;
+  const oc = document.createElement('canvas');
+  const octx = oc.getContext('2d');
+  const font = '700 ' + fontSize + 'px "Arial Black", "Segoe UI", Arial, sans-serif';
+  octx.font = font;
+  const tw = Math.ceil(octx.measureText(numberText).width);
+  oc.width = tw + 60;
+  oc.height = Math.ceil(fontSize * 1.5);
+  octx.font = font;
+  octx.fillStyle = '#fff';
+  octx.textAlign = 'center';
+  octx.textBaseline = 'middle';
+  octx.fillText(numberText, oc.width / 2, oc.height / 2);
+  const data = octx.getImageData(0, 0, oc.width, oc.height).data;
+  const step = 5;
+  let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  const hits = [];
+  for (let y = 0; y < oc.height; y += step) {
+    for (let x = 0; x < oc.width; x += step) {
+      const a = data[(y * oc.width + x) * 4 + 3];
+      if (a > 140 && Math.random() > 0.12) {
+        hits.push({ x, y });
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  const cxI = (minX + maxX) / 2, cyI = (minY + maxY) / 2;
+  for (const h of hits) {
+    rawPoints.push({
+      x: h.x - cxI + (Math.random() - 0.5) * 2.5,
+      y: h.y - cyI + (Math.random() - 0.5) * 2.5
+    });
+  }
+  rawW = Math.max(1, maxX - minX);
+  rawH = Math.max(1, maxY - minY);
+})();
+
+/* 数字构图（像素坐标，两层共用） */
+let cxN = 0, cyN = 0, numHalfHpx = 60, desiredScreenW = 600;
+function layoutNumbers2D() {
+  const mobile = W < 700;
+  cxN = mobile ? W * 0.5 : W * 0.43;
+  cyN = mobile ? H * 0.38 : H * 0.40;
+  desiredScreenW = mobile ? W * 0.80 : Math.min(W * 0.58, 780);
+  numHalfHpx = (rawH / rawW) * desiredScreenW * 0.5 + 14;
+}
+
+/* ============ 3. 上层 2D Canvas ============ */
+const canvas = document.getElementById('sky');
+const ctx = canvas.getContext('2d');
+const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
+
+// 降级模式（无 WebGL）用的星星精灵
+const PALETTE_CSS = ['255,255,255', '207,228,255', '255,233,196', '255,205,210', '216,255,240'];
+const sprites = PALETTE_CSS.map(rgb => {
+  const n = 64, s = document.createElement('canvas');
+  s.width = s.height = n;
+  const c = s.getContext('2d');
+  const g = c.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  g.addColorStop(0, 'rgba(' + rgb + ',1)');
+  g.addColorStop(0.16, 'rgba(' + rgb + ',0.9)');
+  g.addColorStop(0.42, 'rgba(' + rgb + ',0.16)');
+  g.addColorStop(1, 'rgba(' + rgb + ',0)');
+  c.fillStyle = g;
+  c.fillRect(0, 0, n, n);
+  return s;
+});
+
+// 降级模式的数字星群状态
+let fbStars = [];
+function rebuildFallbackNumbers() {
+  const scale = (desiredScreenW / 0.5) / rawW;
+  fbStars = rawPoints.map(p => ({
+    x: p.x * scale, y: p.y * scale, z: (Math.random() - 0.5) * 46,
+    ox: 0, oy: 0, vx: 0, vy: 0,
+    size: 1.6 + Math.random() * 2.4,
+    sprite: (Math.random() * sprites.length) | 0,
+    phase: Math.random() * Math.PI * 2,
+    tw: 0.6 + Math.random() * 1.8,
+    drift: Math.random() * Math.PI * 2
+  }));
+}
+const FOV2D = 600, CAMZ2D = 600;
+const out2d = { sx: 0, sy: 0, p: 1 };
+function project2d(x, y, z, ry, rx, ocx, ocy) {
+  const cy = Math.cos(ry), sy = Math.sin(ry);
+  const x1 = x * cy - z * sy;
+  const z1 = x * sy + z * cy;
+  const cx = Math.cos(rx), sx = Math.sin(rx);
+  const y2 = y * cx - z1 * sx;
+  const z2 = y * sx + z1 * cx;
+  let d = FOV2D + CAMZ2D + z2;
+  if (d < 80) d = 80;
+  const p = FOV2D / d;
+  out2d.sx = ocx + x1 * p;
+  out2d.sy = ocy + y2 * p;
+  out2d.p = p;
+  return out2d;
+}
+
+const meteors = [];
+let nextMeteorAt = 0;
+
+// 操作提示自动隐藏
+const hintEl = document.getElementById('hint');
+let hintHidden = false;
+function hideHint() {
+  if (!hintHidden) { hintHidden = true; hintEl.classList.add('hide'); }
+}
+setTimeout(hideHint, 9000);
+
+// 说明文字跟随 3D 数字（视角移动时投影到屏幕）
+const captionInfo = { x: 0, y: 0, visible: true };
+function spawnMeteor(t) {
+  const fromLeft = Math.random() > 0.5;
+  const speed = 420 + Math.random() * 380;
+  meteors.push({
+    x: fromLeft ? -60 : W + 60,
+    y: Math.random() * H * 0.45,
+    vx: (fromLeft ? 1 : -1) * speed * (0.75 + Math.random() * 0.2),
+    vy: 90 + Math.random() * 150,
+    life: 0,
+    maxLife: 0.9 + Math.random() * 0.6,
+    len: 90 + Math.random() * 90
+  });
+  nextMeteorAt = t + 5 + Math.random() * 9;
+}
+
+let glActive = false; // Three.js 是否可用
+
+function drawOverlay(t) {
+  ctx.clearRect(0, 0, W, H);
+
+  // 流星
+  if (t > nextMeteorAt) spawnMeteor(t);
+  for (let k = meteors.length - 1; k >= 0; k--) {
+    const m = meteors[k];
+    m.life += 1 / 60;
+    m.x += m.vx / 60;
+    m.y += m.vy / 60;
+    if (m.life > m.maxLife) { meteors.splice(k, 1); continue; }
+    const prog = m.life / m.maxLife;
+    const fade = Math.sin(prog * Math.PI);
+    const tx = m.x - m.vx / 60 * (m.len / 9);
+    const ty = m.y - m.vy / 60 * (m.len / 9);
+    const grad = ctx.createLinearGradient(m.x, m.y, tx, ty);
+    grad.addColorStop(0, 'rgba(255,255,255,' + (0.85 * fade) + ')');
+    grad.addColorStop(0.3, 'rgba(190,215,255,' + (0.35 * fade) + ')');
+    grad.addColorStop(1, 'rgba(190,215,255,0)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(m.x, m.y);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+  }
+
+  // —— 降级模式：数字在 2D 层渲染 ——
+  if (!glActive) {
+    const rotY = Math.sin(t * 0.11) * 0.3 + mouse.parYCur;
+    const rotX = Math.sin(t * 0.083 + 1.3) * 0.07 + mouse.parXCur;
+    const RR = 115, R2 = RR * RR;
+    let mvx = Math.max(-60, Math.min(60, mouse.x - mouse.px));
+    let mvy = Math.max(-60, Math.min(60, mouse.y - mouse.py));
+    for (const s of fbStars) {
+      project2d(s.x, s.y, s.z, rotY, rotX, cxN, cyN);
+      const dx = out2d.sx + s.ox - mouse.x;
+      const dy = out2d.sy + s.oy - mouse.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < R2 && d2 > 1 && mouse.x > -9000) {
+        const d = Math.sqrt(d2);
+        const f = 1 - d / RR;
+        s.vx += (dx / d) * f * 1.15 + mvx * f * 0.045;
+        s.vy += (dy / d) * f * 1.15 + mvy * f * 0.045;
+      }
+      s.vx += -0.055 * s.ox;
+      s.vy += -0.055 * s.oy;
+      s.vx *= 0.9; s.vy *= 0.9;
+      s.ox += s.vx; s.oy += s.vy;
+      const driftX = Math.sin(t * 0.55 + s.drift) * 1.1;
+      const driftY = Math.cos(t * 0.42 + s.drift * 1.7) * 1.1;
+      const px = out2d.sx + s.ox + driftX;
+      const py = out2d.sy + s.oy + driftY;
+      if (px < -60 || px > W + 60 || py < -60 || py > H + 60) continue;
+      const speed = Math.abs(s.vx) + Math.abs(s.vy);
+      const glow = 1 + Math.min(speed * 0.1, 0.8);
+      const twN = 0.75 + 0.25 * Math.sin(t * s.tw + s.phase);
+      const sizeN = s.size * out2d.p * 6 * glow;
+      ctx.globalAlpha = Math.min(1, twN * (0.55 + out2d.p * 0.7));
+      ctx.drawImage(sprites[s.sprite], px - sizeN / 2, py - sizeN / 2, sizeN, sizeN);
+    }
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    ctx.globalAlpha = 1;
+  }
+
+  // 小字说明 + 饰线（WebGL 模式下跟随 3D 数字的屏幕投影）
+  const capX = glActive ? captionInfo.x : cxN;
+  const capY = glActive ? captionInfo.y : cyN + numHalfHpx + 42;
+  if (!glActive || captionInfo.visible) {
+    ctx.save();
+    const fs = Math.max(14, Math.min(20, W * 0.013));
+    ctx.font = '300 ' + fs + 'px "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const capA = 0.5 + 0.18 * Math.sin(t * 1.1);
+    ctx.fillStyle = 'rgba(190,214,255,' + capA + ')';
+    ctx.shadowColor = 'rgba(140,180,255,0.9)';
+    ctx.shadowBlur = 14;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
+    ctx.fillText(captionText, capX, capY);
+    const tw2 = ctx.measureText(captionText).width;
+    const lineLen = Math.min(90, W * 0.07);
+    const lineY = capY + fs * 0.6;
+    ctx.shadowBlur = 6;
+    ctx.lineWidth = 1;
+    const lgL = ctx.createLinearGradient(capX - tw2 / 2 - 18 - lineLen, 0, capX - tw2 / 2 - 18, 0);
+    lgL.addColorStop(0, 'rgba(150,185,255,0)');
+    lgL.addColorStop(1, 'rgba(190,214,255,' + (capA * 0.8) + ')');
+    ctx.strokeStyle = lgL;
+    ctx.beginPath();
+    ctx.moveTo(capX - tw2 / 2 - 18 - lineLen, lineY);
+    ctx.lineTo(capX - tw2 / 2 - 18, lineY);
+    ctx.stroke();
+    const lgR = ctx.createLinearGradient(capX + tw2 / 2 + 18, 0, capX + tw2 / 2 + 18 + lineLen, 0);
+    lgR.addColorStop(0, 'rgba(190,214,255,' + (capA * 0.8) + ')');
+    lgR.addColorStop(1, 'rgba(150,185,255,0)');
+    ctx.strokeStyle = lgR;
+    ctx.beginPath();
+    ctx.moveTo(capX + tw2 / 2 + 18, lineY);
+    ctx.lineTo(capX + tw2 / 2 + 18 + lineLen, lineY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 角落签名
+  ctx.save();
+  ctx.font = '300 12px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = 'rgba(200,220,255,0.22)';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('chitori \u2726 tarstar', 18, H - 16);
+  ctx.restore();
+}
+
+/* ============ 4. 尺寸处理 ============ */
+let onResizeGL = null;
+function resizeAll() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  const dpr = DPR();
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  layoutNumbers2D();
+  if (!glActive) rebuildFallbackNumbers();
+  if (onResizeGL) onResizeGL();
+}
+window.addEventListener('resize', resizeAll);
+
+/* ============ 5. GLSL ============ */
+const NOISE_GLSL = `
+vec3 mod289(vec3 x){return x - floor(x*(1.0/289.0))*289.0;}
+vec4 mod289(vec4 x){return x - floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+float snoise(vec3 v){
+  const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+  vec3 i  = floor(v + dot(v, C.yyy));
+  vec3 x0 = v - i + dot(i, C.xxx);
+  vec3 g = step(x0.yzx, x0.xyz);
+  vec3 l = 1.0 - g;
+  vec3 i1 = min(g.xyz, l.zxy);
+  vec3 i2 = max(g.xyz, l.zxy);
+  vec3 x1 = x0 - i1 + C.xxx;
+  vec3 x2 = x0 - i2 + C.yyy;
+  vec3 x3 = x0 - D.yyy;
+  i = mod289(i);
+  vec4 p = permute(permute(permute(
+      i.z + vec4(0.0, i1.z, i2.z, 1.0))
+    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+  float n_ = 0.142857142857;
+  vec3 ns = n_ * D.wyz - D.xzx;
+  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+  vec4 x_ = floor(j * ns.z);
+  vec4 y_ = floor(j - 7.0 * x_);
+  vec4 x = x_ * ns.x + ns.yyyy;
+  vec4 y = y_ * ns.x + ns.yyyy;
+  vec4 h = 1.0 - abs(x) - abs(y);
+  vec4 b0 = vec4(x.xy, y.xy);
+  vec4 b1 = vec4(x.zw, y.zw);
+  vec4 s0 = floor(b0)*2.0 + 1.0;
+  vec4 s1 = floor(b1)*2.0 + 1.0;
+  vec4 sh = -step(h, vec4(0.0));
+  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+  vec3 p0 = vec3(a0.xy, h.x);
+  vec3 p1 = vec3(a0.zw, h.y);
+  vec3 p2 = vec3(a1.xy, h.z);
+  vec3 p3 = vec3(a1.zw, h.w);
+  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+  m = m * m;
+  return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+}
+float fbm(vec3 p, int oct){
+  float a = 0.5, s = 0.0;
+  for(int i = 0; i < 6; i++){
+    if(i >= oct) break;
+    s += a * snoise(p);
+    p *= 2.02;
+    a *= 0.5;
+  }
+  return s;
+}
+`;
+
+/* ---- 写实土星：柔和低对比云带 + 极区暗化 + 大气雾感 ---- */
+const planetVert = `
+varying vec3 vObjPos;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+void main(){
+  vObjPos = position;
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  vWorldNormal = normalize(mat3(modelMatrix) * normal);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}
+`;
+
+const planetFrag = `
+precision highp float;
+uniform float uTime;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+uniform vec3 uPlanetCenter;
+uniform float uPlanetRadius;
+uniform vec3 uRingUp;
+uniform vec2 uRingRange;
+varying vec3 vObjPos;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+${NOISE_GLSL}
+
+// 环的光学密度（与环着色器共用同一套结构）
+float ringDensity(float r){
+  float u = (r - uRingRange.x) / max(0.001, uRingRange.y - uRingRange.x);
+  if(u < 0.0 || u > 1.0) return 0.0;
+  float ringlets = 0.5*sin(u*420.0 + sin(u*90.0)*3.0) + 0.3*sin(u*780.0) + 0.2*sin(u*190.0);
+  float d = 0.0;
+  d += 0.22 * smoothstep(0.0,0.06,u) * (1.0-smoothstep(0.24,0.27,u));                    // C 环
+  d += (0.80 + 0.18*ringlets) * smoothstep(0.27,0.30,u) * (1.0-smoothstep(0.66,0.69,u)); // B 环
+  d += 0.06 * smoothstep(0.69,0.70,u) * (1.0-smoothstep(0.75,0.757,u));                  // 卡西尼缝残留
+  d += (0.55 + 0.15*ringlets) * smoothstep(0.757,0.78,u) * (1.0-smoothstep(0.985,1.0,u)); // A 环
+  d *= 1.0 - 0.85*exp(-pow((u-0.945)*90.0, 2.0));                                        // 恩克缝
+  return clamp(d, 0.0, 1.2);
+}
+
+void main(){
+  vec3 p = normalize(vObjPos);
+  float lat = p.y;
+
+  // —— 无花纹无斑驳：近黑深蓝底体（赛博朋克：靠霓虹边缘光造型） ——
+  vec3 col = vec3(0.055, 0.065, 0.10);
+  col = mix(col, vec3(0.035, 0.04, 0.07), smoothstep(0.55, 0.95, abs(lat))*0.35);
+
+  // —— 光照：sigmoid 晨昏线（Sangil Lee） ——
+  vec3 N = normalize(vWorldNormal);
+  vec3 L = normalize(uLightDir);
+  vec3 V = normalize(uCamPos - vWorldPos);
+  float ndl = dot(N, L);
+  float diff = 1.0 / (1.0 + exp(-20.0*(ndl + 0.02)));   // 更硬的晨昏线（赛博高对比）
+  float term = exp(-ndl*ndl*45.0);
+  float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 3.0);
+
+  // —— 环投影阴影：太阳圆面 5-tap 软半影（太阳非点光源） ——
+  vec3 P = vWorldPos - uPlanetCenter;
+  float sh = 1.0;
+  if(abs(dot(L, uRingUp)) > 0.05 && ndl > -0.2){
+    vec3 perpAxis = normalize(uRingUp - L*dot(uRingUp, L));
+    float acc = 0.0, wsum = 0.0;
+    for(int i = -2; i <= 2; i++){
+      float fi = float(i)*0.5;
+      float w = sqrt(max(0.0, 1.0 - fi*fi*0.25));
+      vec3 ray = normalize(L + perpAxis*(fi*0.09));
+      float dn = dot(ray, uRingUp);
+      if(abs(dn) > 0.02){
+        float tHit = -dot(P, uRingUp)/dn;
+        if(tHit > 0.0){
+          vec3 hitP = P + ray*tHit;
+          float r = length(hitP - uRingUp*dot(hitP, uRingUp));
+          acc += w * min(ringDensity(r), 1.0);
+        }
+      }
+      wsum += w;
+    }
+    sh = 1.0 - (acc/max(wsum, 0.001)) * 0.85;
+  }
+
+  // —— 赛博朋克合成：青/品红双色霓虹边缘光 ——
+  vec3 cyan    = vec3(0.15, 0.85, 1.00);
+  vec3 magenta = vec3(1.00, 0.12, 0.55);
+  vec3 lit = col * (0.02 + 0.90*diff) * sh;
+  lit += cyan * diff * 0.10;                                  // 受光面冷青环境光
+  lit += mix(cyan, magenta, 0.65) * term * 0.25;              // 晨昏线电光散射
+  lit += mix(cyan*diff, magenta*(1.0-diff), 0.35 + 0.65*(1.0-diff)) * fres * 0.90; // 霓虹轮缘：亮侧青、夜侧品红
+  // 全息网格：加密细线，全球可见（亮部=刻槽+品红霓虹、暗部=自发光更强）
+  float night = 1.0 - diff;
+  float lonG = atan(p.z, p.x) / 6.28318;
+  float latL = abs(fract(lat*20.0 + 0.5) - 0.5);
+  float lonL = abs(fract(lonG*44.0 + 0.5) - 0.5);
+  float g1 = 1.0 - smoothstep(0.010, 0.026, latL);
+  float g2 = 1.0 - smoothstep(0.010, 0.026, lonL);
+  float grid = max(g1, g2);
+  float scan = pow(0.5 + 0.5*sin(gl_FragCoord.y*2.6 - uTime*3.0), 12.0);
+  lit *= 1.0 - grid * 0.30 * diff;              // 亮部：网格刻槽（压暗保证可见）
+  lit += magenta * grid * (0.10 + 0.10*night);  // 品红霓虹线：全球可见、夜面更亮
+  lit += cyan * scan * (0.02 + 0.05*night);     // 扫描线：暗面为主
+
+  // 全息投影质感：轻微闪烁 + 向上刷新的扫描带
+  lit *= 0.97 + 0.03*sin(uTime*37.0)*sin(uTime*13.0);
+  float refresh = exp(-pow(fract(gl_FragCoord.y*0.0015 - uTime*0.10)*6.0 - 3.0, 2.0));
+  lit += (cyan*0.5 + magenta*0.5) * refresh * 0.05;
+
+  lit *= 1.0 - 0.25*pow(1.0 - clamp(dot(N,V), 0.0, 1.0), 2.0); // 临边昏暗
+
+  // 不透明：完全实心
+  gl_FragColor = vec4(max(lit, 0.0), 1.0);
+}
+`;
+
+/* ---- 真实结构星环：C/B/A 环 + 卡西尼缝 + 恩克缝 + 环粒 ---- */
+const ringVert = `
+varying vec3 vWorldPos;
+varying vec3 vLocalPos;
+void main(){
+  vLocalPos = position;
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}
+`;
+
+const ringFrag = `
+precision highp float;
+uniform float uTime;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+uniform vec3 uPlanetCenter;
+uniform float uPlanetRadius;
+uniform float uInner;
+uniform float uOuter;
+varying vec3 vWorldPos;
+varying vec3 vLocalPos;
+
+void main(){
+  float r = length(vLocalPos.xy);
+  float u = (r - uInner) / max(0.001, uOuter - uInner);
+  if(u < 0.0 || u > 1.0) discard;
+
+  // 环粒（多频叠加的细环结构）
+  float ringlets = 0.5*sin(u*420.0 + sin(u*90.0)*3.0) + 0.3*sin(u*780.0) + 0.2*sin(u*190.0);
+
+  // 分区密度：C / B / 卡西尼 / A / 恩克缝
+  float d = 0.0;
+  d += 0.22 * smoothstep(0.0,0.06,u) * (1.0-smoothstep(0.24,0.27,u));
+  float bB = smoothstep(0.27,0.30,u) * (1.0-smoothstep(0.66,0.69,u));
+  d += (0.80 + 0.18*ringlets) * bB;
+  d += 0.06 * smoothstep(0.69,0.70,u) * (1.0-smoothstep(0.75,0.757,u));
+  float bA = smoothstep(0.757,0.78,u) * (1.0-smoothstep(0.985,1.0,u));
+  d += (0.55 + 0.15*ringlets) * bA;
+  d *= 1.0 - 0.85*exp(-pow((u-0.945)*90.0, 2.0));
+  d = clamp(d, 0.0, 1.2);
+
+  // 分区颜色：C 偏暗红、B 亮麦秆色、A 稍冷
+  // 分区颜色：与星球同色系（偏蓝灰），C 最暗、B 最亮、A 居中
+  vec3 colC = vec3(0.06, 0.07, 0.10);
+  vec3 colB = vec3(0.16, 0.19, 0.26);
+  vec3 colA = vec3(0.13, 0.16, 0.22);
+  vec3 baseCol = mix(colC, colB, smoothstep(0.20, 0.30, u));
+  baseCol = mix(baseCol, colA, smoothstep(0.70, 0.78, u));
+  // 卡西尼缝外缘的蓝色弥散环粒（Cassini PIA08306 实测特征）
+  float blueRinglet = exp(-pow((u-0.735)*120.0, 2.0));
+  baseCol = mix(baseCol, vec3(0.42, 0.48, 0.62), blueRinglet*0.45);
+  // 方位向粒子颗粒感（冰粒聚集的非均匀性）
+  float ang = atan(vLocalPos.y, vLocalPos.x);
+  baseCol *= 0.97 + 0.05*sin(ang*260.0 + u*30.0)*sin(ang*97.0 + 2.0);
+  // 背光面（未受光侧）偏冷透（与蓝灰色系一致）
+  baseCol *= vec3(0.95, 0.98, 1.08);
+
+  // 星球圆柱阴影
+  vec3 P = vWorldPos - uPlanetCenter;
+  vec3 L = normalize(uLightDir);
+  float tca = dot(P, L);
+  vec3 perp = P - L*tca;
+  float dperp = length(perp);
+  float inShadow = (1.0 - smoothstep(uPlanetRadius*0.97, uPlanetRadius*1.22, dperp))
+                 * (1.0 - smoothstep(-0.9, 0.15, tca));
+  float shadow = 1.0 - inShadow*0.94;
+
+  // 光学深度 → 透明度（半透明，能透出背景与星球暗面）
+  float alpha = (1.0 - exp(-d*1.7)) * (0.30 + 0.55*shadow) * (0.82 + 0.18*ringlets);
+
+  // 背生前向散射（卡西尼经典背光照）+ 环境底光
+  vec3 V = normalize(uCamPos - vWorldPos);
+  float ph = 0.30 + 1.50*pow(max(dot(-L, V), 0.0), 2.2);
+  vec3 col = baseCol * (0.02 + shadow*ph*0.30);
+  col = mix(col*vec3(0.55, 0.40, 1.10), col, shadow);   // 阴影中偏冷紫
+
+  // 品红霓虹线：放在可见环带内（B 环中部 u≈0.34，内缘 u=0 会被星球遮住）
+  float innerNeon = exp(-pow((u-0.34)*85.0, 2.0));
+  col += vec3(1.0, 0.12, 0.55) * innerNeon * (0.22 + 0.30*shadow);
+  alpha = max(alpha, innerNeon*0.60);
+
+  // —— 赛博朋克化：青色霓虹导轨 + 轨道扫描脉冲 + 编码器刻度 ——
+  float cyanN1 = exp(-pow((u-0.700)*90.0, 2.0));    // 卡西尼缝外缘
+  float cyanN2 = exp(-pow((u-0.985)*120.0, 2.0));   // 环外缘
+  col += vec3(0.15, 0.85, 1.00) * (cyanN1*0.45 + cyanN2*0.30) * (0.30 + 0.70*shadow);
+  alpha = max(alpha, cyanN1*0.45 + cyanN2*0.28);
+
+  float angN = ang/6.28318 + 0.5;
+  float sweep = fract(angN - uTime*0.02);           // 沿环轨道行进的扫描脉冲
+  float pulse = exp(-pow(sweep*13.0, 2.0)) + exp(-pow((sweep-1.0)*13.0, 2.0));
+  col += vec3(0.15, 0.85, 1.00) * pulse * 0.22 * smoothstep(0.05, 0.20, u) * (1.0 - smoothstep(0.90, 1.0, u));
+
+  // 全息投影式轻微闪烁
+  col *= 0.96 + 0.04*sin(uTime*29.0 + u*40.0);
+
+  gl_FragColor = vec4(col, alpha);
+}
+`;
+
+/* ---- 大气边缘辉光 ---- */
+const atmosVert = `
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+void main(){
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  vWorldNormal = normalize(mat3(modelMatrix) * normal);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}
+`;
+const atmosFrag = `
+precision highp float;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+void main(){
+  vec3 N = normalize(vWorldNormal);
+  vec3 V = normalize(uCamPos - vWorldPos);
+  vec3 L = normalize(uLightDir);
+  float d = dot(N, V);
+  float rim = pow(clamp(1.0 + d, 0.0, 1.0), 2.4);
+  float sun = smoothstep(-0.15, 0.45, dot(N, L));
+  vec3 gold = vec3(0.15, 0.85, 1.00);   // 受光侧：青
+  vec3 purple = vec3(1.00, 0.12, 0.55); // 夜侧：品红
+  vec3 col = mix(purple*0.4, gold, sun);
+  float a = rim * (0.08 + 0.80*sun) * 0.6;
+  gl_FragColor = vec4(col * a, a);
+}
+`;
+
+/* ---- 星云天穹 ---- */
+const skyVert = `
+varying vec3 vDir;
+void main(){
+  vDir = position;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+const skyFrag = `
+precision highp float;
+uniform float uTime;
+varying vec3 vDir;
+${NOISE_GLSL}
+void main(){
+  vec3 d = normalize(vDir);
+  vec3 col = vec3(0.002, 0.003, 0.008);
+  vec3 bandN = normalize(vec3(0.42, 0.84, -0.34));
+  float bd = dot(d, bandN);
+  float band = exp(-bd*bd*8.0);
+  float warp = fbm(d*2.0 + vec3(uTime*0.003), 3);
+  float n = fbm(d*4.2 + warp*0.55, 4);
+  float n2 = fbm(d*6.8 - warp*0.5 + 7.0, 3);
+  vec3 nebP = vec3(0.073, 0.023, 0.34);
+  vec3 nebB = vec3(0.010, 0.063, 0.32);
+  vec3 nebK = vec3(0.34, 0.026, 0.147);
+  float c1 = smoothstep(0.10, 0.72, n);
+  float c2 = smoothstep(0.25, 0.85, n2);
+  col += nebP*c1*0.12 + nebB*c2*0.09 + nebK*c1*c2*0.11;
+  col += band * (0.016 + 0.018*n + c1*0.012) * vec3(0.48, 0.54, 1.0);
+  float dust = smoothstep(0.15, 0.6, fbm(d*6.5 + 23.0, 3));
+  col *= 1.0 - dust*band*0.35;
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+/* ---- 点精灵通用（背景星 & 数字星群） ---- */
+const pointsVert = `
+attribute float aSize;
+attribute float aPhase;
+attribute float aSpeed;
+attribute vec3 aColor;
+uniform float uTime;
+uniform float uPR;
+uniform float uK;
+uniform float uDrift;
+varying vec3 vColor;
+varying float vTw;
+void main(){
+  vColor = aColor;
+  vTw = 0.6 + 0.4*sin(uTime*aSpeed + aPhase);
+  vec3 pos = position;
+  pos.x += sin(uTime*0.55 + aPhase)*uDrift;
+  pos.y += cos(uTime*0.42 + aPhase*1.7)*uDrift;
+  vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+  gl_PointSize = aSize * uPR * (uK / -mv.z);
+  gl_Position = projectionMatrix * mv;
+}
+`;
+const pointsFrag = `
+precision highp float;
+uniform sampler2D uTex;
+varying vec3 vColor;
+varying float vTw;
+void main(){
+  vec4 tex = texture2D(uTex, gl_PointCoord);
+  vec3 c = vColor * (0.6 + 1.0*vTw);
+  gl_FragColor = vec4(c, tex.a * (0.35 + 0.65*vTw));
+}
+`;
+
+/* ---- 光晕贴图 ---- */
+function makeGlowTexture(rgb, soft) {
+  const n = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  grad.addColorStop(0, 'rgba(' + rgb + ',' + (soft ? 0.32 : 0.85) + ')');
+  grad.addColorStop(0.25, 'rgba(' + rgb + ',' + (soft ? 0.12 : 0.32) + ')');
+  grad.addColorStop(0.55, 'rgba(' + rgb + ',' + (soft ? 0.04 : 0.08) + ')');
+  grad.addColorStop(1, 'rgba(' + rgb + ',0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, n, n);
+  return c;
+}
+// 点精灵用：实心核 + 柔边
+function makePointTexture() {
+  const n = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.2, 'rgba(255,255,255,0.85)');
+  grad.addColorStop(0.45, 'rgba(255,255,255,0.18)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, n, n);
+  return c;
+}
+
+/* ============ 6. Three.js 初始化 ============ */
+let THREE, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, ShaderPass;
+try {
+  THREE = await import('three');
+  ({ EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js'));
+  ({ RenderPass } = await import('three/addons/postprocessing/RenderPass.js'));
+  ({ UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js'));
+  ({ OutputPass } = await import('three/addons/postprocessing/OutputPass.js'));
+  ({ ShaderPass } = await import('three/addons/postprocessing/ShaderPass.js'));
+} catch (err) {
+  console.warn('Three.js 加载失败，进入降级模式', err);
+  document.body.classList.add('no-webgl');
+}
+
+let glTick = null;
+
+if (THREE) {
+  glActive = true;
+  const glCanvas = document.getElementById('glCanvas');
+  let pixelRatio = Math.min(window.devicePixelRatio || 1, W * H > 2500000 ? 1.3 : 2);
+
+  const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(pixelRatio);
+  renderer.setSize(W, H);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;  // 电影色调（AgX 对本场景饱和度损失过大）
+  renderer.toneMappingExposure = 1.05;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(12, W / H, 0.1, 6000);
+  camera.position.set(0, 0, 0);
+
+  // 光照方向在 layout 中按构图计算（侧逆光：晨昏线落在可见弧内）
+  const LIGHT_DIR = new THREE.Vector3(-0.6, 0.6, -0.3).normalize();
+
+  const pointTex = new THREE.CanvasTexture(makePointTexture());
+
+  // —— 星云天穹 ——
+  const skyMat = new THREE.ShaderMaterial({
+    vertexShader: skyVert,
+    fragmentShader: skyFrag,
+    uniforms: { uTime: { value: 0 } },
+    side: THREE.BackSide,
+    depthWrite: false
+  });
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(2500, 48, 32), skyMat));
+
+  // —— 背景星点 ——
+  const STAR_N = 2800;
+  const sPos = new Float32Array(STAR_N * 3);
+  const sSize = new Float32Array(STAR_N);
+  const sPhase = new Float32Array(STAR_N);
+  const sSpeed = new Float32Array(STAR_N);
+  const sColor = new Float32Array(STAR_N * 3);
+  const starCols = [
+    [1, 1, 1], [0.81, 0.89, 1], [1, 0.91, 0.77], [1, 0.8, 0.82], [0.85, 1, 0.94], [1, 0.85, 0.6]
+  ];
+  for (let i = 0; i < STAR_N; i++) {
+    const u = Math.random() * 2 - 1;
+    const th = Math.random() * Math.PI * 2;
+    const rr = 600 + Math.random() * 1200;
+    const sr = Math.sqrt(1 - u * u);
+    sPos[i * 3] = rr * sr * Math.cos(th);
+    sPos[i * 3 + 1] = rr * sr * Math.sin(th);
+    sPos[i * 3 + 2] = rr * u;
+    const hero = Math.random() < 0.06;
+    sSize[i] = hero ? 2.6 + Math.random() * 2.2 : 0.5 + Math.random() * 1.5;
+    sPhase[i] = Math.random() * 6.283;
+    sSpeed[i] = 0.4 + Math.random() * 2.2;
+    const cc = starCols[(Math.random() * starCols.length) | 0];
+    sColor[i * 3] = cc[0]; sColor[i * 3 + 1] = cc[1]; sColor[i * 3 + 2] = cc[2];
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  starGeo.setAttribute('aSize', new THREE.BufferAttribute(sSize, 1));
+  starGeo.setAttribute('aPhase', new THREE.BufferAttribute(sPhase, 1));
+  starGeo.setAttribute('aSpeed', new THREE.BufferAttribute(sSpeed, 1));
+  starGeo.setAttribute('aColor', new THREE.BufferAttribute(sColor, 3));
+  const starMat = new THREE.ShaderMaterial({
+    vertexShader: pointsVert,
+    fragmentShader: pointsFrag,
+    uniforms: {
+      uTime: { value: 0 }, uPR: { value: pixelRatio },
+      uK: { value: 2000 }, uDrift: { value: 0 }, uTex: { value: pointTex }
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  scene.add(new THREE.Points(starGeo, starMat));
+  // 背景星最先绘制（半透明星球可透出星空）
+  scene.children[scene.children.length - 1].renderOrder = 0;
+
+  // —— 土星组 ——
+  const planetGroup = new THREE.Group();
+  planetGroup.rotation.set(0.26, 0, -0.30); // 环打开 squash≈0.26（更优雅的窄环带），画面内倾斜 -17°
+  scene.add(planetGroup);
+
+  const RING_IN = 1.24, RING_OUT = 2.27; // 真实土星比例（C 环内缘 ~ A 环外缘）
+
+  const planetUniforms = {
+    uTime: { value: 0 },
+    uLightDir: { value: LIGHT_DIR },
+    uCamPos: { value: camera.position },
+    uPlanetCenter: { value: planetGroup.position },
+    uPlanetRadius: { value: 1 },
+    uRingUp: { value: new THREE.Vector3(0, 1, 0) },
+    uRingRange: { value: new THREE.Vector2(RING_IN, RING_OUT) }
+  };
+  const planetMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 160, 120),
+    new THREE.ShaderMaterial({
+      vertexShader: planetVert, fragmentShader: planetFrag, uniforms: planetUniforms,
+      transparent: false, depthWrite: true   // 不透明实心球：正常写深度
+    })
+  );
+  planetMesh.scale.set(1, 0.902, 1); // 真实土星扁率（极半径/赤道半径 ≈ 0.902）
+  planetMesh.renderOrder = 2;
+  planetGroup.add(planetMesh);
+
+  const ringUniforms = {
+    uTime: { value: 0 },
+    uLightDir: { value: LIGHT_DIR },
+    uCamPos: { value: camera.position },
+    uPlanetCenter: { value: planetGroup.position },
+    uPlanetRadius: { value: 1 },
+    uInner: { value: RING_IN },
+    uOuter: { value: RING_OUT }
+  };
+  const ringMesh = new THREE.Mesh(
+    new THREE.RingGeometry(RING_IN, RING_OUT, 320, 6),
+    new THREE.ShaderMaterial({
+      vertexShader: ringVert, fragmentShader: ringFrag, uniforms: ringUniforms,
+      transparent: true, side: THREE.DoubleSide, depthWrite: false
+    })
+  );
+  ringMesh.rotation.x = -Math.PI / 2; // 环面 = 赤道面
+  ringMesh.renderOrder = 1;           // 先于半透明星球绘制 → 能透过星球看到环
+  planetGroup.add(ringMesh);
+
+  const atmosMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.045, 96, 64),
+    new THREE.ShaderMaterial({
+      vertexShader: atmosVert, fragmentShader: atmosFrag,
+      uniforms: { uLightDir: { value: LIGHT_DIR }, uCamPos: { value: camera.position } },
+      side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false
+    })
+  );
+  atmosMesh.renderOrder = 3;
+  planetGroup.add(atmosMesh);
+
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(makeGlowTexture('255,80,180', true)),
+    blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.14
+  }));
+  halo.scale.set(4.0, 4.0, 1);
+  halo.renderOrder = 4;
+  planetGroup.add(halo);
+
+  // 太阳（侧逆光光源，从星球边缘探出的日食感 flare）
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(makeGlowTexture('255,244,225', false)),
+    blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.95
+  }));
+  sunSprite.scale.set(10, 10, 1);
+  scene.add(sunSprite);
+  sunSprite.material.opacity = 0.7;
+  sunSprite.renderOrder = 1; // 与环同层：星球半透明叠在其上
+
+  const ringUp = new THREE.Vector3(0, 1, 0).applyEuler(planetGroup.rotation).normalize();
+  planetUniforms.uRingUp.value.copy(ringUp);
+
+  // —— 3D 数字星群 ——
+  const DIGIT_DEPTH = 60;
+  const digitGroup = new THREE.Group();
+  scene.add(digitGroup);
+  const digitMat = new THREE.ShaderMaterial({
+    vertexShader: pointsVert,
+    fragmentShader: pointsFrag,
+    uniforms: {
+      uTime: { value: 0 }, uPR: { value: pixelRatio },
+      uK: { value: 140 }, uDrift: { value: 0.016 }, uTex: { value: pointTex }
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  let digitGeo = null;
+  let digitBase = null;   // Float32Array 基准位置
+  let digitOff = null;    // 扰动位移
+  let digitVel = null;
+  let digitSizeAttr = null;
+  let perturbRadius = 1.6;
+  let worldPerPxAtDigits = 0.014;
+
+  const digitGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(makeGlowTexture('120,160,255', true)),
+    blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.16
+  }));
+  digitGroup.add(digitGlow);
+
+  const digitPalette = [
+    [1, 1, 1], [0.81, 0.89, 1], [1, 0.91, 0.77], [1, 0.8, 0.82], [0.85, 1, 0.94]
+  ];
+
+  function buildDigitGeometry() {
+    if (digitGeo) { digitGeo.dispose(); digitGroup.remove(digitGroup.getObjectByProperty('type', 'Points')); }
+    const n = rawPoints.length;
+    const sc = (desiredScreenW * worldPerPxAtDigits) / rawW;
+    const pos = new Float32Array(n * 3);
+    digitBase = new Float32Array(n * 3);
+    digitOff = new Float32Array(n * 3);
+    digitVel = new Float32Array(n * 3);
+    const size = new Float32Array(n);
+    const phase = new Float32Array(n);
+    const speed = new Float32Array(n);
+    const color = new Float32Array(n * 3);
+    const bulge = sc * 0.10; // 微球面弯曲，旋转时更有体积感
+    for (let i = 0; i < n; i++) {
+      const bx = rawPoints[i].x * sc;
+      const by = -rawPoints[i].y * sc; // 画布 Y 向下、WebGL Y 向上 → 取负，否则数字上下镜像
+      const r2 = (rawPoints[i].x * rawPoints[i].x + rawPoints[i].y * rawPoints[i].y) / (rawW * rawW);
+      const bz = (Math.random() - 0.5) * sc * 0.10 - r2 * bulge;
+      digitBase[i * 3] = bx; digitBase[i * 3 + 1] = by; digitBase[i * 3 + 2] = bz;
+      pos[i * 3] = bx; pos[i * 3 + 1] = by; pos[i * 3 + 2] = bz;
+      size[i] = 0.8 + Math.random() * 1.8;
+      phase[i] = Math.random() * 6.283;
+      speed[i] = 0.6 + Math.random() * 1.8;
+      const cc = digitPalette[(Math.random() * digitPalette.length) | 0];
+      color[i * 3] = cc[0]; color[i * 3 + 1] = cc[1]; color[i * 3 + 2] = cc[2];
+    }
+    digitGeo = new THREE.BufferGeometry();
+    digitGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    digitGeo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+    digitGeo.setAttribute('aPhase', new THREE.BufferAttribute(phase, 1));
+    digitGeo.setAttribute('aSpeed', new THREE.BufferAttribute(speed, 1));
+    digitGeo.setAttribute('aColor', new THREE.BufferAttribute(color, 3));
+    digitSizeAttr = digitGeo.getAttribute('position');
+    const pts = new THREE.Points(digitGeo, digitMat);
+    pts.name = 'digitPoints';
+    pts.renderOrder = 10; // 加色混合的数字星群始终最前
+    digitGroup.add(pts);
+    digitGlow.scale.set(desiredScreenW * worldPerPxAtDigits * 1.7, desiredScreenW * worldPerPxAtDigits * 1.2, 1);
+    perturbRadius = 115 * worldPerPxAtDigits;
+  }
+
+  // —— 后期 ——
+  const composer = new EffectComposer(renderer);
+  composer.setPixelRatio(pixelRatio);
+  composer.setSize(W, H);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.75, 0.7, 0.72);
+  composer.addPass(bloomPass);
+
+  // —— 故障艺术后期：RGB 色差 / CRT 扫描线 / 暗角 / 噪点 / 偶发故障撕裂 ——
+  const glitchPass = new ShaderPass({
+    uniforms: {
+      tDiffuse: { value: null },
+      uTime: { value: 0 },
+      uGlitch: { value: 0 },
+      uRes: { value: new THREE.Vector2(W, H) }
+    },
+    vertexShader: `
+varying vec2 vUv;
+void main(){
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`,
+    fragmentShader: `
+uniform sampler2D tDiffuse;
+uniform float uTime;
+uniform float uGlitch;
+uniform vec2 uRes;
+varying vec2 vUv;
+
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+void main(){
+  vec2 uv = vUv;
+  // 故障撕裂：按行随机水平位移
+  float band = floor(uv.y * 90.0);
+  float rnd = hash(vec2(band, floor(uTime * 24.0)));
+  uv.x += (rnd - 0.5) * 0.035 * uGlitch * step(0.72, rnd);
+  // RGB 色差分离
+  float split = 0.0009 + 0.006 * uGlitch;
+  float ang = uTime * 1.7;
+  vec2 dir = vec2(cos(ang), sin(ang));
+  vec3 col;
+  col.r = texture2D(tDiffuse, uv + dir * split).r;
+  col.g = texture2D(tDiffuse, uv).g;
+  col.b = texture2D(tDiffuse, uv - dir * split).b;
+  // CRT 扫描线
+  col *= 0.985 + 0.015 * sin(vUv.y * uRes.y * 1.6);
+  // 暗角
+  vec2 q = vUv - 0.5;
+  col *= 1.0 - dot(q, q) * 0.55;
+  // 噪点
+  col += (hash(vUv * uRes + fract(uTime) * 100.0) - 0.5) * 0.012;
+  // 故障时通道偏色
+  col.r += uGlitch * 0.10 * hash(vec2(floor(uTime * 20.0), 1.0));
+  col.b += uGlitch * 0.10 * hash(vec2(floor(uTime * 20.0), 2.0));
+  gl_FragColor = vec4(col, 1.0);
+}
+`
+  });
+  composer.addPass(glitchPass);
+  const glitchState = { next: 8 + Math.random() * 10, start: -10, dur: 0.2 };
+
+  composer.addPass(new OutputPass());
+
+  // —— 布局 ——
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const digitPlane = new THREE.Plane();
+  const planeNormal = new THREE.Vector3();
+  const hitPoint = new THREE.Vector3();
+  const localHit = new THREE.Vector3();
+  const tmpV = new THREE.Vector3();
+  const tmpE = new THREE.Euler(0, 0, 0, 'YXZ');
+  const tmpF = new THREE.Vector3();
+
+  // —— 视角控制：拖拽环视 / 滚轮推进 / 双击复位（阻尼 + 惯性） ——
+  const view = { yaw: 0, pitch: 0, yawT: 0, pitchT: 0, dolly: 0, dollyT: 0, dragging: false, lx: 0, ly: 0, vx: 0, vy: 0 };
+  window.__cv = view; // 调试/外部控制接口
+  glCanvas.addEventListener('pointerdown', e => {
+    view.dragging = true; view.lx = e.clientX; view.ly = e.clientY;
+    view.vx = view.vy = 0;
+    glCanvas.classList.add('dragging');
+    glCanvas.setPointerCapture(e.pointerId);
+    hideHint();
+  });
+  window.addEventListener('pointermove', e => {
+    if (!view.dragging) return;
+    const dx = e.clientX - view.lx, dy = e.clientY - view.ly;
+    view.lx = e.clientX; view.ly = e.clientY;
+    view.yawT = Math.max(-0.9, Math.min(0.9, view.yawT - dx * 0.0016));
+    view.pitchT = Math.max(-0.55, Math.min(0.55, view.pitchT - dy * 0.0016));
+    view.vx = -dx * 0.0016; view.vy = -dy * 0.0016;
+  });
+  window.addEventListener('pointerup', () => { view.dragging = false; glCanvas.classList.remove('dragging'); });
+  glCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    view.dollyT = Math.max(-25, Math.min(90, view.dollyT + e.deltaY * 0.06));
+    hideHint();
+  }, { passive: false });
+  glCanvas.addEventListener('dblclick', () => {
+    // 立即复位（不依赖阻尼收敛，低帧率设备也即时生效）
+    view.yaw = view.yawT = 0;
+    view.pitch = view.pitchT = 0;
+    view.dolly = view.dollyT = 0;
+    view.vx = view.vy = 0;
+  });
+
+  function layoutScene() {
+    const vFov = camera.fov * Math.PI / 180;
+
+    // 星球：右下角局部
+    const D = 200;
+    const screenH = 2 * Math.tan(vFov / 2) * D;
+    const s = screenH / H;
+    const Rpx = Math.max(W, H) * 0.70;
+    const cxPx = W + Rpx * 0.24;
+    const cyPx = H + Rpx * 0.34;
+    const Rw = Rpx * s;
+    planetGroup.position.set((cxPx - W / 2) * s, -(cyPx - H / 2) * s, -D);
+    planetGroup.scale.setScalar(Rw);
+    ringUniforms.uPlanetRadius.value = Rw;
+    planetUniforms.uPlanetRadius.value = Rw;
+    planetUniforms.uRingRange.value.set(RING_IN * Rw, RING_OUT * Rw);
+
+    // 光照：屏幕左上方向 + 沿视线分量 → 侧逆光，晨昏线落在可见弧内
+    const v = planetGroup.position.clone().normalize();          // 相机→星球
+    const ul = new THREE.Vector3(-0.72, 0.72, 0).normalize();     // 屏幕左上
+    const ulW = ul.clone().addScaledVector(v, -ul.dot(v)).normalize(); // ⊥ 视线
+    LIGHT_DIR.copy(ulW.multiplyScalar(0.86).addScaledVector(v, 0.50).normalize());
+    // 太阳 flare：屏幕坐标 (0.80W, 0.32H) 处、星球 limb 外侧的日食感位置
+    const sunNdc = new THREE.Vector3((W * 0.80 / W) * 2 - 1, -(H * 0.32 / H) * 2 + 1, 0.5);
+    sunSprite.position.copy(sunNdc.unproject(camera).normalize().multiplyScalar(400));
+
+    // 数字星群
+    worldPerPxAtDigits = (2 * Math.tan(vFov / 2) * DIGIT_DEPTH) / H;
+    digitGroup.position.set((cxN - W / 2) * worldPerPxAtDigits, -(cyN - H / 2) * worldPerPxAtDigits, -DIGIT_DEPTH);
+    buildDigitGeometry();
+  }
+
+  onResizeGL = function () {
+    pixelRatio = Math.min(window.devicePixelRatio || 1, W * H > 2500000 ? 1.3 : 2);
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(W, H);
+    composer.setPixelRatio(pixelRatio);
+    composer.setSize(W, H);
+    starMat.uniforms.uPR.value = pixelRatio;
+    digitMat.uniforms.uPR.value = pixelRatio;
+    glitchPass.uniforms.uRes.value.set(W, H);
+    layoutNumbers2D();
+    layoutScene();
+  };
+  layoutNumbers2D();
+  layoutScene();
+
+  const clock = new THREE.Clock();
+  window.__mats = { planet: planetMesh, ring: ringMesh, atmos: atmosMesh, halo, sun: sunSprite, bloom: bloomPass, renderer, pu: planetUniforms }; // 调试接口
+
+  glTick = function (t) {
+    const el = clock.getElapsedTime();
+    skyMat.uniforms.uTime.value = el;
+    starMat.uniforms.uTime.value = el;
+    planetUniforms.uTime.value = el;
+    ringUniforms.uTime.value = el;
+    digitMat.uniforms.uTime.value = el;
+
+    // 故障爆发调度：每隔 14~36 秒一次短暂撕裂
+    if (el > glitchState.next) {
+      glitchState.start = el;
+      glitchState.dur = 0.18 + Math.random() * 0.25;
+      glitchState.next = el + 14 + Math.random() * 22;
+    }
+    const gt = (el - glitchState.start) / glitchState.dur;
+    glitchPass.uniforms.uTime.value = el;
+    glitchPass.uniforms.uGlitch.value = (gt >= 0 && gt <= 1) ? Math.sin(gt * Math.PI) : 0;
+    planetMesh.rotation.y = el * 0.018; // 缓慢自转
+
+    // 数字星群：真实 3D 摆动 + 视差
+    digitGroup.rotation.y = Math.sin(t * 0.11) * 0.30 + mouse.parYCur * 0.55;
+    digitGroup.rotation.x = Math.sin(t * 0.083 + 1.3) * 0.07 + mouse.parXCur * 0.40;
+
+    // 说明文字跟随 3D 数字的屏幕投影
+    camera.updateMatrixWorld();
+    const distD = camera.position.distanceTo(digitGroup.position);
+    const wpPxNow = (2 * Math.tan(camera.fov * Math.PI / 360) * distD) / H;
+    tmpV.copy(digitGroup.position).project(camera);
+    captionInfo.visible = tmpV.z < 1 && tmpV.x > -1.6 && tmpV.x < 1.6 && tmpV.y > -1.6 && tmpV.y < 1.6;
+    captionInfo.x = (tmpV.x * 0.5 + 0.5) * W;
+    captionInfo.y = (-tmpV.y * 0.5 + 0.5) * H + (numHalfHpx * worldPerPxAtDigits) / wpPxNow + 42;
+
+    // 鼠标射线 → 数字平面局部坐标（3D 扰动）
+    let hasHit = false;
+    if (mouse.x > -9000) {
+      ndc.set((mouse.x / W) * 2 - 1, -(mouse.y / H) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
+      digitGroup.updateMatrixWorld();
+      planeNormal.set(0, 0, 1).applyQuaternion(digitGroup.quaternion);
+      digitPlane.setFromNormalAndCoplanarPoint(planeNormal, digitGroup.position);
+      if (raycaster.ray.intersectPlane(digitPlane, hitPoint)) {
+        localHit.copy(hitPoint);
+        digitGroup.worldToLocal(localHit);
+        hasHit = true;
+        // 扰动半径随视距换算（视角推进后依然手感一致）
+        perturbRadius = 115 * (2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.distanceTo(hitPoint)) / H;
+      }
+    }
+
+    // 扰动物理（局部空间，弹簧归位）
+    if (digitBase) {
+      const posArr = digitSizeAttr.array;
+      const n = digitBase.length / 3;
+      const R2 = perturbRadius * perturbRadius;
+      for (let i = 0; i < n; i++) {
+        const i3 = i * 3;
+        if (hasHit) {
+          const dx = digitBase[i3] + digitOff[i3] - localHit.x;
+          const dy = digitBase[i3 + 1] + digitOff[i3 + 1] - localHit.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < R2 && d2 > 1e-8) {
+            const d = Math.sqrt(d2);
+            const f = (1 - d / perturbRadius) * worldPerPxAtDigits;
+            digitVel[i3] += (dx / d) * f * 1.15;
+            digitVel[i3 + 1] += (dy / d) * f * 1.15;
+            digitVel[i3 + 2] += f * 0.35; // 轻微向屏幕外鼓起
+          }
+        }
+        for (let c = 0; c < 3; c++) {
+          const j = i3 + c;
+          digitVel[j] += -0.055 * digitOff[j];
+          digitVel[j] *= 0.9;
+          digitOff[j] += digitVel[j];
+          posArr[j] = digitBase[j] + digitOff[j];
+        }
+      }
+      digitSizeAttr.needsUpdate = true;
+    }
+
+    // 视角：阻尼跟随 + 释放惯性 + 滚轮推进
+    if (!view.dragging && Math.abs(view.vx) + Math.abs(view.vy) > 1e-5) {
+      view.yawT = Math.max(-0.9, Math.min(0.9, view.yawT + view.vx));
+      view.pitchT = Math.max(-0.55, Math.min(0.55, view.pitchT + view.vy));
+      view.vx *= 0.90; view.vy *= 0.90;
+    }
+    view.yaw += (view.yawT - view.yaw) * 0.10;
+    view.pitch += (view.pitchT - view.pitch) * 0.10;
+    view.dolly += (view.dollyT - view.dolly) * 0.10;
+    tmpE.set(view.pitch, view.yaw, 0);
+    camera.quaternion.setFromEuler(tmpE);
+    tmpF.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    camera.position.copy(tmpF).multiplyScalar(view.dolly);
+    camera.position.x += mouse.parYCur * 0.55;   // 叠加微弱视差
+    camera.position.y += -mouse.parXCur * 0.4;
+
+    composer.render();
+  };
+}
+
+/* ============ 7. 启动 ============ */
+resizeAll();
+
+function loop(ts) {
+  const t = ts / 1000;
+  window.__frames = (window.__frames || 0) + 1;
+  mouse.parYCur += (mouse.parY - mouse.parYCur) * 0.045;
+  mouse.parXCur += (mouse.parX - mouse.parXCur) * 0.045;
+  if (glTick) glTick(t);
+  drawOverlay(t);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
