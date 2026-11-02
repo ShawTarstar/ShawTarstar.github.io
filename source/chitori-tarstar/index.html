@@ -61,13 +61,981 @@
     pointer-events: none;
     cursor: crosshair;
   }
+
+  /* ===== 命令输入 ===== */
+  #starBtn {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 42;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(140, 190, 255, 0.3);
+    background: rgba(8, 14, 32, 0.5);
+    color: #cfe6ff;
+    font: 400 15px/1 "Segoe UI", "Segoe UI Symbol", sans-serif;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 0 18px rgba(120, 180, 255, 0.18), 0 6px 20px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%);
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s, background 0.35s, opacity 0.25s;
+    opacity: 0;
+    pointer-events: none;
+    animation: starPulse 4.5s ease-in-out infinite;
+  }
+  #starBtn.placed { opacity: 1; pointer-events: auto; }
+  #starBtn.off { opacity: 0; pointer-events: none; }
+  #starBtn::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+  }
+  #starBtn:hover {
+    transform: translate(-50%, -50%) rotate(90deg) scale(1.12);
+    background: rgba(14, 26, 58, 0.8);
+    box-shadow: 0 0 26px rgba(120, 180, 255, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+  #starBtn:focus-visible {
+    outline: 1px solid rgba(160, 210, 255, 0.8);
+    outline-offset: 3px;
+  }
+  #starBtn.open {
+    transform: translate(-50%, -50%) rotate(180deg);
+    background: rgba(20, 36, 76, 0.85);
+  }
+  @keyframes starPulse {
+    0%, 100% { box-shadow: 0 0 18px rgba(120, 180, 255, 0.18), 0 6px 20px rgba(0, 0, 0, 0.3); }
+    50% { box-shadow: 0 0 28px rgba(120, 180, 255, 0.34), 0 6px 20px rgba(0, 0, 0, 0.3); }
+  }
+
+  #cmdBar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 41;
+    width: min(620px, 86vw);
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px 0 14px;
+    border: 1px solid rgba(120, 180, 255, 0.28);
+    border-radius: 12px;
+    background: rgba(4, 9, 22, 0.84);
+    box-shadow: 0 12px 38px rgba(0, 0, 0, 0.45), 0 0 30px rgba(70, 130, 255, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    font: 13px/1.4 "Cascadia Code", "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+    color: #eaf4ff;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(-6px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  }
+  #cmdBar.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  #cmdBar.off { opacity: 0; pointer-events: none; }
+  .cmd-prompt {
+    flex: 0 0 auto;
+    color: #6fe3ff;
+    text-shadow: 0 0 8px rgba(80, 220, 255, 0.6);
+  }
+  .cmd-hint {
+    flex: 0 0 auto;
+    padding: 2px 5px;
+    border: 1px solid rgba(120, 180, 255, 0.16);
+    border-radius: 4px;
+    color: rgba(190, 214, 255, 0.3);
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+  }
+  #cmdClose {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(190, 214, 255, 0.5);
+    font: 15px/1 "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  #cmdClose:hover {
+    background: rgba(255, 120, 150, 0.12);
+    color: #ff9fb4;
+  }
+  #termInput {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #eaf4ff;
+    font: inherit;
+    caret-color: #6fe3ff;
+  }
+  #termInput::placeholder { color: rgba(190, 214, 255, 0.28); }
+
+  #sideStack {
+    position: fixed;
+    top: max(18px, env(safe-area-inset-top));
+    right: 18px;
+    z-index: 45;
+    width: min(360px, calc(100vw - 36px));
+    max-height: calc(100vh - 36px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s;
+  }
+  #sideStack.show { opacity: 1; visibility: visible; }
+  .side-toggles {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    pointer-events: auto;
+  }
+  .side-toggle {
+    position: relative;
+    padding: 5px 12px;
+    border: 1px solid rgba(120, 180, 255, 0.22);
+    border-radius: 999px;
+    background: rgba(8, 14, 32, 0.62);
+    color: rgba(190, 214, 255, 0.68);
+    font: 11px/1.4 "Microsoft YaHei", "Segoe UI", sans-serif;
+    letter-spacing: 1px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .side-toggle:hover {
+    background: rgba(20, 36, 76, 0.8);
+    border-color: rgba(120, 180, 255, 0.42);
+    color: #e8f2ff;
+  }
+  .side-toggle.active {
+    background: rgba(20, 36, 76, 0.88);
+    border-color: rgba(120, 180, 255, 0.55);
+    color: #eaf4ff;
+  }
+  .side-toggle.has-new::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff6fa8;
+    box-shadow: 0 0 8px #ff6fa8;
+  }
+  .side-panel {
+    display: none;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid rgba(120, 180, 255, 0.22);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(8, 14, 30, 0.94), rgba(3, 6, 16, 0.97));
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(70, 130, 255, 0.1);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  .side-panel.show { display: flex; }
+  .side-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(120, 180, 255, 0.12);
+    background: rgba(120, 180, 255, 0.035);
+  }
+  .side-title {
+    flex: 1;
+    font: 11px/1.4 "Microsoft YaHei", "Segoe UI", sans-serif;
+    letter-spacing: 1px;
+    color: rgba(190, 214, 255, 0.7);
+  }
+  .side-close {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(190, 214, 255, 0.55);
+    font: 15px/1 "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  .side-close:hover {
+    background: rgba(255, 120, 150, 0.12);
+    color: #ff9fb4;
+  }
+
+  .term-log {
+    min-height: 72px;
+    max-height: 28vh;
+    overflow-y: auto;
+    padding: 10px 12px;
+    font: 12px/1.55 "Cascadia Code", "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+    color: #cbd9f5;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 180, 255, 0.25) transparent;
+  }
+  .term-log::-webkit-scrollbar { width: 6px; }
+  .term-log::-webkit-scrollbar-thumb {
+    background: rgba(120, 180, 255, 0.22);
+    border-radius: 3px;
+  }
+  .term-line {
+    margin: 0 0 5px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .term-line.cmd { color: #8fd8ff; }
+  .term-line.ok { color: #b6f5d2; }
+  .term-line.warn { color: #ffd28a; }
+  .term-line.err { color: #ff9db0; }
+  .term-line.dim { color: rgba(190, 214, 255, 0.45); }
+  .term-hints {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    max-height: 42vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 180, 255, 0.22) transparent;
+  }
+  .term-hint-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .term-hint-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(140, 230, 255, 0.5);
+  }
+  .term-hint-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(90, 220, 255, 0.18), transparent);
+  }
+  .term-hint-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .term-hint {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 3px 8px;
+    border: 1px solid rgba(120, 180, 255, 0.16);
+    border-radius: 6px;
+    background: rgba(120, 180, 255, 0.05);
+    color: rgba(190, 214, 255, 0.65);
+    font: inherit;
+    font-size: 10.5px;
+    line-height: 1.5;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .term-hint b { color: #8fd8ff; font-weight: 500; }
+  .term-hint span { color: rgba(190, 214, 255, 0.42); }
+  .term-hint:hover {
+    background: rgba(120, 180, 255, 0.14);
+    border-color: rgba(120, 180, 255, 0.38);
+    color: #e8f2ff;
+  }
+  @media (max-width: 700px) {
+    #starBtn {
+      width: 30px;
+      height: 30px;
+      font-size: 14px;
+    }
+    #cmdBar {
+      width: 90vw;
+      height: 40px;
+      padding: 0 6px 0 12px;
+    }
+    .cmd-hint { display: none; }
+    #sideStack {
+      top: max(12px, env(safe-area-inset-top));
+      right: 10px;
+      width: calc(100vw - 20px);
+      max-height: calc(100vh - 24px);
+    }
+    .term-log { max-height: 18vh; }
+    .term-hints { max-height: 30vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #starBtn { animation: none; }
+    #starBtn, #cmdBar, #sideStack { transition: none; }
+  }
+
+  /* ===== 全息日记 ===== */
+  #diaryWindow, #diaryWindow * { box-sizing: border-box; }
+  #diaryOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 4, 12, 0.74);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s;
+  }
+  #diaryOverlay.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  #diaryWindow {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(1060px, 94vw);
+    height: min(720px, 86vh);
+    overflow: hidden;
+    border: 1px solid rgba(90, 220, 255, 0.42);
+    background:
+      linear-gradient(135deg, rgba(4, 22, 38, 0.9), rgba(2, 6, 16, 0.96) 52%, rgba(14, 6, 34, 0.92)),
+      repeating-linear-gradient(0deg, rgba(90, 220, 255, 0.035) 0 1px, transparent 1px 4px);
+    box-shadow:
+      0 0 0 1px rgba(90, 220, 255, 0.06) inset,
+      0 0 40px rgba(50, 180, 255, 0.18),
+      0 0 120px rgba(255, 70, 180, 0.08),
+      0 30px 100px rgba(0, 0, 0, 0.7);
+    font: 13px/1.5 "Cascadia Code", "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+    color: #bfe6ff;
+    transform: translateY(10px) scale(0.985);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
+  }
+  #diaryOverlay.show #diaryWindow {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  #diaryWindow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(120, 235, 255, 0.04) 0 1px, transparent 1px 3px);
+    mix-blend-mode: screen;
+    opacity: 0.45;
+  }
+  #diaryWindow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 0%, rgba(90, 220, 255, 0.1), transparent 60%);
+  }
+  .diary-scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -120px;
+    z-index: 8;
+    height: 120px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(90, 220, 255, 0.08), transparent);
+    animation: diaryScan 5.5s linear infinite;
+  }
+  @keyframes diaryScan {
+    0% { transform: translateY(-120px); }
+    100% { transform: translateY(760px); }
+  }
+  .diary-corner {
+    position: absolute;
+    z-index: 8;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    border-color: rgba(120, 235, 255, 0.75);
+  }
+  .diary-corner.tl { top: 0; left: 0; border-top: 1px solid; border-left: 1px solid; }
+  .diary-corner.tr { top: 0; right: 0; border-top: 1px solid; border-right: 1px solid; }
+  .diary-corner.bl { bottom: 0; left: 0; border-bottom: 1px solid; border-left: 1px solid; }
+  .diary-corner.br { bottom: 0; right: 0; border-bottom: 1px solid; border-right: 1px solid; }
+  .diary-head {
+    position: relative;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(90, 220, 255, 0.18);
+    background: linear-gradient(90deg, rgba(90, 220, 255, 0.06), transparent 60%);
+  }
+  .diary-brand {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .diary-led {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #6fe3ff;
+    box-shadow: 0 0 10px #6fe3ff;
+    animation: diaryLed 1.6s steps(2) infinite;
+  }
+  @keyframes diaryLed {
+    50% { opacity: 0.35; }
+  }
+  .diary-name {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #d8f6ff;
+    text-shadow: 0 0 14px rgba(90, 220, 255, 0.8);
+  }
+  .diary-sub {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(160, 220, 255, 0.45);
+  }
+  .diary-clock {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.55);
+    white-space: nowrap;
+  }
+  #diaryClose {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid rgba(90, 220, 255, 0.16);
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(190, 240, 255, 0.65);
+    font: 16px/1 "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  #diaryClose:hover {
+    border-color: rgba(255, 100, 160, 0.5);
+    background: rgba(255, 100, 160, 0.1);
+    color: #ffb3c8;
+  }
+  .diary-body {
+    position: relative;
+    z-index: 7;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+  .diary-side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid rgba(90, 220, 255, 0.14);
+    background: rgba(4, 16, 28, 0.4);
+  }
+  .diary-side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(90, 220, 255, 0.1);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(140, 230, 255, 0.55);
+  }
+  #diaryNew {
+    padding: 4px 9px;
+    border: 1px solid rgba(90, 220, 255, 0.28);
+    border-radius: 3px;
+    background: rgba(90, 220, 255, 0.06);
+    color: #bfe9ff;
+    font: 10px/1.3 "Microsoft YaHei", "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  #diaryNew:hover {
+    background: rgba(90, 220, 255, 0.15);
+    border-color: rgba(90, 220, 255, 0.55);
+    box-shadow: 0 0 16px rgba(90, 220, 255, 0.18);
+  }
+  .diary-sync {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(90, 220, 255, 0.1);
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.45);
+  }
+  .diary-repo-state {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(140, 230, 255, 0.45);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .diary-repo-state.online {
+    color: #8fffd0;
+    text-shadow: 0 0 10px rgba(80, 255, 180, 0.4);
+  }
+  .diary-repo-state.err {
+    color: #ff8fa8;
+    text-shadow: 0 0 10px rgba(255, 90, 140, 0.35);
+  }
+  #diaryConnect {
+    flex: 0 0 auto;
+    padding: 3px 8px;
+    border: 1px solid rgba(90, 220, 255, 0.24);
+    border-radius: 3px;
+    background: rgba(90, 220, 255, 0.05);
+    color: rgba(190, 240, 255, 0.7);
+    font: 9px/1.3 "Microsoft YaHei", "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  #diaryConnect:hover {
+    background: rgba(90, 220, 255, 0.14);
+    border-color: rgba(90, 220, 255, 0.5);
+  }
+  .diary-auth {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 12px;
+    border-bottom: 1px solid rgba(90, 220, 255, 0.18);
+    background: linear-gradient(180deg, rgba(4, 22, 38, 0.98), rgba(2, 8, 20, 0.99));
+    box-shadow: 0 0 30px rgba(90, 220, 255, 0.08) inset;
+  }
+  .diary-auth.show { display: flex; }
+  #diaryToken {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid rgba(90, 220, 255, 0.22);
+    outline: 0;
+    background: rgba(0, 0, 0, 0.3);
+    color: #dff8ff;
+    font: 10px/1.4 "Cascadia Code", Consolas, monospace;
+  }
+  #diaryToken:focus {
+    border-color: rgba(90, 220, 255, 0.6);
+    box-shadow: 0 0 16px rgba(90, 220, 255, 0.12);
+  }
+  .diary-auth-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .diary-auth-actions button {
+    padding: 3px 8px;
+    border: 1px solid rgba(90, 220, 255, 0.24);
+    border-radius: 3px;
+    background: rgba(90, 220, 255, 0.05);
+    color: rgba(190, 240, 255, 0.7);
+    font: 9px/1.3 "Microsoft YaHei", "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  .diary-auth-actions button:hover {
+    background: rgba(90, 220, 255, 0.14);
+    border-color: rgba(90, 220, 255, 0.5);
+  }
+  .diary-auth-note {
+    margin: 6px 0 0;
+    font-size: 9px;
+    line-height: 1.6;
+    color: rgba(140, 230, 255, 0.35);
+  }
+  .diary-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(90, 220, 255, 0.25) transparent;
+  }
+  .diary-list::-webkit-scrollbar { width: 6px; }
+  .diary-list::-webkit-scrollbar-thumb {
+    background: rgba(90, 220, 255, 0.22);
+    border-radius: 3px;
+  }
+  .diary-item {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 3px;
+    margin-bottom: 6px;
+    padding: 9px 10px;
+    border: 1px solid transparent;
+    border-left: 2px solid rgba(90, 220, 255, 0.18);
+    background: rgba(90, 220, 255, 0.025);
+    color: #a8d8f5;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .diary-item:hover {
+    background: rgba(90, 220, 255, 0.08);
+    border-left-color: rgba(90, 220, 255, 0.5);
+  }
+  .diary-item.active {
+    background: linear-gradient(90deg, rgba(90, 220, 255, 0.14), rgba(255, 80, 180, 0.06));
+    border-left-color: #6fe3ff;
+    box-shadow: 0 0 18px rgba(90, 220, 255, 0.1);
+  }
+  .diary-item-date {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.45);
+  }
+  .diary-item-title {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 12px;
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .diary-side-foot {
+    padding: 8px 12px;
+    border-top: 1px solid rgba(90, 220, 255, 0.1);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(140, 230, 255, 0.35);
+  }
+  .diary-empty-list {
+    padding: 18px 10px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.3);
+    text-align: center;
+  }
+  .diary-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 14px 18px 12px;
+  }
+  .diary-main-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.45);
+  }
+  .diary-chars {
+    color: rgba(255, 120, 190, 0.45);
+    white-space: nowrap;
+  }
+  #diaryTitle {
+    width: 100%;
+    margin-top: 10px;
+    padding: 6px 2px 10px;
+    border: 0;
+    border-bottom: 1px solid rgba(90, 220, 255, 0.28);
+    outline: 0;
+    background: transparent;
+    color: #e6f9ff;
+    font: 20px/1.3 "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    letter-spacing: 1px;
+    text-shadow: 0 0 18px rgba(90, 220, 255, 0.25);
+  }
+  #diaryTitle::placeholder { color: rgba(140, 230, 255, 0.25); }
+  #diaryTitle:focus {
+    border-bottom-color: rgba(90, 220, 255, 0.7);
+    box-shadow: 0 8px 20px -16px rgba(90, 220, 255, 0.8);
+  }
+  #diaryContent {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid rgba(90, 220, 255, 0.12);
+    outline: 0;
+    resize: none;
+    background:
+      linear-gradient(rgba(90, 220, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(90, 220, 255, 0.025) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px;
+    color: #cdefff;
+    font: 14px/1.9 "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    caret-color: #6fe3ff;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(90, 220, 255, 0.25) transparent;
+  }
+  #diaryContent:focus {
+    border-color: rgba(90, 220, 255, 0.3);
+    box-shadow: 0 0 30px rgba(90, 220, 255, 0.06) inset;
+  }
+  #diaryContent::placeholder { color: rgba(140, 230, 255, 0.22); }
+  #diaryContent::-webkit-scrollbar { width: 6px; }
+  #diaryContent::-webkit-scrollbar-thumb {
+    background: rgba(90, 220, 255, 0.22);
+    border-radius: 3px;
+  }
+  .diary-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 10px;
+  }
+  .diary-save-state {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.4);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .diary-save-state.ok {
+    color: #8fffd0;
+    text-shadow: 0 0 12px rgba(80, 255, 180, 0.5);
+  }
+  .diary-save-state.warn { color: #ffd28a; }
+  .diary-save-state.err { color: #ff8fa8; }
+  .diary-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .diary-btn {
+    padding: 7px 16px;
+    border: 1px solid rgba(90, 220, 255, 0.3);
+    background: rgba(90, 220, 255, 0.06);
+    color: #bfe9ff;
+    font: 11px/1 "Microsoft YaHei", "Segoe UI", sans-serif;
+    letter-spacing: 2px;
+    cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
+  }
+  .diary-btn:hover {
+    background: rgba(90, 220, 255, 0.14);
+    border-color: rgba(90, 220, 255, 0.6);
+    box-shadow: 0 0 20px rgba(90, 220, 255, 0.2);
+  }
+  .diary-btn.primary {
+    background: rgba(90, 220, 255, 0.12);
+    color: #eaffff;
+  }
+  .diary-btn.danger {
+    border-color: rgba(255, 90, 140, 0.25);
+    background: rgba(255, 90, 140, 0.05);
+    color: #ffb3c6;
+  }
+  .diary-btn.danger:hover,
+  .diary-btn.danger.armed {
+    background: rgba(255, 90, 140, 0.16);
+    border-color: rgba(255, 90, 140, 0.6);
+    box-shadow: 0 0 20px rgba(255, 90, 140, 0.2);
+  }
+  .diary-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  #diaryEdit.active {
+    border-color: rgba(255, 90, 140, 0.55);
+    background: rgba(255, 90, 140, 0.1);
+    color: #ffb3c6;
+  }
+  #diaryWindow.editing {
+    border-color: rgba(255, 120, 190, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(255, 120, 190, 0.08) inset,
+      0 0 48px rgba(255, 70, 180, 0.16),
+      0 0 120px rgba(90, 220, 255, 0.08),
+      0 30px 100px rgba(0, 0, 0, 0.7);
+  }
+  #diaryTitle[readonly],
+  #diaryContent[readonly] { cursor: default; }
+  #diaryTitle[readonly] {
+    border-bottom-color: rgba(90, 220, 255, 0.12);
+    text-shadow: none;
+  }
+  #diaryContent[readonly] {
+    border-color: rgba(90, 220, 255, 0.08);
+    color: #b8d9ec;
+  }
+  @media (max-width: 700px) {
+    #diaryOverlay { padding: 8px; }
+    #diaryWindow {
+      width: 96vw;
+      height: 90vh;
+    }
+    .diary-head {
+      gap: 8px;
+      padding: 10px 12px;
+    }
+    .diary-name {
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+    .diary-sub, .diary-clock { display: none; }
+    .diary-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: 170px 1fr;
+    }
+    .diary-side {
+      border-right: 0;
+      border-bottom: 1px solid rgba(90, 220, 255, 0.14);
+    }
+    .diary-main { padding: 10px 12px; }
+    #diaryTitle { font-size: 17px; }
+    #diaryContent {
+      padding: 10px;
+      font-size: 13px;
+    }
+    .diary-btn { padding: 7px 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .diary-scan, .diary-led { animation: none; }
+    #diaryOverlay, #diaryWindow { transition: none; }
+  }
 </style>
 </head>
 <body>
 <canvas id="glCanvas"></canvas>
 <canvas id="sky"></canvas>
 <div id="vignette"></div>
-<div id="hint">拖拽移动视角 · 滚轮推进 · 双击复位</div>
+<div id="hint">拖拽移动视角 · 滚轮推进 · 双击复位 · ✦ 命令输入</div>
+
+<button id="starBtn" type="button" aria-label="打开命令输入" aria-expanded="false" aria-controls="cmdBar" title="命令输入">✦</button>
+
+<div id="cmdBar" aria-hidden="true">
+  <span class="cmd-prompt">$</span>
+  <input id="termInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入命令，试试 help" aria-label="命令输入">
+  <span class="cmd-hint">Enter</span>
+  <button id="cmdClose" type="button" aria-label="关闭命令输入">×</button>
+</div>
+
+<div id="sideStack" aria-hidden="true">
+  <div class="side-toggles">
+    <button id="historyToggle" class="side-toggle" type="button" aria-expanded="false" aria-controls="historyPanel">历史记录</button>
+    <button id="hintsToggle" class="side-toggle" type="button" aria-expanded="false" aria-controls="hintsPanel">命令提示</button>
+  </div>
+  <section id="historyPanel" class="side-panel" aria-label="历史记录" aria-hidden="true">
+    <div class="side-head">
+      <span class="side-title">历史记录</span>
+      <button class="side-close" type="button" data-close="history" aria-label="收起历史记录">×</button>
+    </div>
+    <div id="termLog" class="term-log" aria-live="polite"></div>
+  </section>
+  <section id="hintsPanel" class="side-panel" aria-label="命令提示" aria-hidden="true">
+    <div class="side-head">
+      <span class="side-title">命令提示</span>
+      <button class="side-close" type="button" data-close="hints" aria-label="收起命令提示">×</button>
+    </div>
+    <div id="termHints" class="term-hints" aria-label="可用命令"></div>
+  </section>
+</div>
+
+<div id="diaryOverlay" aria-hidden="true">
+  <div id="diaryWindow" role="dialog" aria-modal="true" aria-labelledby="diaryHeading">
+    <span class="diary-corner tl"></span>
+    <span class="diary-corner tr"></span>
+    <span class="diary-corner bl"></span>
+    <span class="diary-corner br"></span>
+    <div class="diary-scan"></div>
+    <header class="diary-head">
+      <div class="diary-brand">
+        <span class="diary-led"></span>
+        <span class="diary-name" id="diaryHeading">HOLO-DIARY</span>
+        <span class="diary-sub">/ 全息日记</span>
+      </div>
+      <span class="diary-clock" id="diaryClock">SYS // ONLINE</span>
+      <button id="diaryClose" type="button" aria-label="关闭全息日记">×</button>
+    </header>
+    <div class="diary-body">
+      <aside class="diary-side">
+        <div class="diary-side-head">
+          <span>ENTRIES</span>
+          <button id="diaryNew" type="button">+ 新建</button>
+        </div>
+        <div class="diary-sync">
+          <span id="diaryRepoState" class="diary-repo-state">GITHUB // 只读</span>
+          <button id="diaryConnect" type="button">连接</button>
+        </div>
+        <div id="diaryAuth" class="diary-auth" aria-hidden="true">
+          <input id="diaryToken" type="password" autocomplete="new-password" placeholder="fine-grained token · Contents RW" aria-label="GitHub token">
+          <div class="diary-auth-actions">
+            <button id="diaryAuthSave" type="button">连接</button>
+            <button id="diaryAuthCancel" type="button">取消</button>
+          </div>
+          <!-- <p class="diary-auth-note">私有仓库模式：先创建 ShawTarstar/our-diary（或修改 DIARY_REPO）。Token 需要 Contents 读写权限，仅保存在当前页面内存中，刷新后需重新输入。</p> -->
+        </div>
+        <div id="diaryList" class="diary-list" aria-label="日记列表"></div>
+        <div class="diary-side-foot" id="diaryCount">0 ENTRIES</div>
+      </aside>
+      <main class="diary-main">
+        <div class="diary-main-head">
+          <span class="diary-meta" id="diaryMeta">NEW ENTRY // 未保存</span>
+          <span class="diary-chars" id="diaryChars">0 chars</span>
+        </div>
+        <input id="diaryTitle" type="text" maxlength="80" autocomplete="off" placeholder="给今天起个名字……" aria-label="日记标题" readonly>
+        <textarea id="diaryContent" placeholder="写下今天发生的事……" aria-label="日记内容" readonly></textarea>
+        <footer class="diary-foot">
+          <span id="diarySaveState" class="diary-save-state" aria-live="polite">READY</span>
+          <div class="diary-actions">
+            <button id="diaryExport" class="diary-btn" type="button">导出</button>
+            <button id="diaryDelete" class="diary-btn danger" type="button">删除</button>
+            <button id="diaryEdit" class="diary-btn" type="button">编辑</button>
+            <button id="diarySave" class="diary-btn primary" type="button" disabled>保存</button>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </div>
+</div>
 
 <script type="importmap">
 {
@@ -87,16 +1055,36 @@
    ================================================================ */
 
 /* ============ 0. 日期计算 ============ */
-const TARGET = new Date(2026, 5, 22); // 2026 年 6 月 22 日（本地时区）
+const TARGET = new Date(2026, 5, 22); // 2026 年 6 月 22 日 00:00:00（本地时区）
+const TARGET_TIME = TARGET.getTime();
 const nowD = new Date();
 const todayD = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate());
 const diffDays = Math.round((todayD - TARGET) / 86400000);
 const absDays = Math.abs(diffDays);
 const numberText = String(absDays);
-let captionText;
-if (diffDays > 0) captionText = '距离 2026.06.22 已 ' + absDays + ' 天';
-else if (diffDays < 0) captionText = '距离 2026.06.22 还有 ' + absDays + ' 天';
-else captionText = '2026.06.22 · 就是今天';
+
+// 说明文字：精确到秒，按秒刷新
+const pad2 = n => String(n).padStart(2, '0');
+let captionText = '';
+let captionSec = -1;
+function updateCaption() {
+  const diff = Date.now() - TARGET_TIME;
+  const totalSec = Math.floor(Math.abs(diff) / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const clock = pad2(h) + 'h' + pad2(m) + 'm' + pad2(s) + 's';
+  if (diff >= 0) {
+    captionText = d === 0
+      ? '2026.06.22 · 就是今天 · ' + clock
+      : '距离 2026.06.22 已 ' + d + ' 天 ' + clock;
+  } else {
+    captionText = '距离 2026.06.22 还有 ' + d + ' 天 ' + clock;
+  }
+  captionSec = Math.floor(Date.now() / 1000);
+}
+updateCaption();
 
 /* ============ 1. 全局状态 ============ */
 let W = window.innerWidth, H = window.innerHeight;
@@ -250,10 +1238,159 @@ function spawnMeteor(t) {
   nextMeteorAt = t + 5 + Math.random() * 9;
 }
 
+/* ---- 命令终端触发的 2D 特效 ---- */
+const hearts = [];
+let mergeFx = null;
+const mood = { r: 1, g: 1, b: 1, a: 0 };
+
+function spawnHearts(cx, cy, count) {
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 1.2 + Math.random() * 4.6;
+    hearts.push({
+      x: cx + (Math.random() - 0.5) * 24,
+      y: cy + (Math.random() - 0.5) * 24,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp - 0.6,
+      life: 0,
+      maxLife: 0.9 + Math.random() * 1.1,
+      size: 2 + Math.random() * 4,
+      pink: Math.random() < 0.55,
+      rot: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.22
+    });
+  }
+}
+
+function drawHeartShape(c, x, y, s) {
+  c.beginPath();
+  c.moveTo(x, y + s * 0.35);
+  c.bezierCurveTo(x - s, y - s * 0.4, x - s * 0.42, y - s * 1.1, x, y - s * 0.55);
+  c.bezierCurveTo(x + s * 0.42, y - s * 1.1, x + s, y - s * 0.4, x, y + s * 0.35);
+  c.closePath();
+}
+
+function drawHearts() {
+  if (!hearts.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    const h = hearts[i];
+    h.life += 1 / 60;
+    if (h.life > h.maxLife) { hearts.splice(i, 1); continue; }
+    h.x += h.vx;
+    h.y += h.vy;
+    h.vx *= 0.985;
+    h.vy = h.vy * 0.985 + 0.02;
+    h.rot += h.spin;
+    const p = h.life / h.maxLife;
+    const alpha = Math.max(0, 1 - p) * 0.9;
+    const rgb = h.pink ? '255,120,190' : '120,230,255';
+    ctx.save();
+    ctx.translate(h.x, h.y);
+    ctx.rotate(h.rot);
+    ctx.fillStyle = 'rgba(' + rgb + ',' + alpha + ')';
+    ctx.shadowColor = 'rgba(' + rgb + ',0.9)';
+    ctx.shadowBlur = 10;
+    drawHeartShape(ctx, 0, 0, h.size * (0.7 + 0.3 * (1 - p)));
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function startMergeFx() {
+  mergeFx = { t: 0, dur: 1.15, burst: false };
+}
+
+function drawBranch(a, b, c, p, rgb) {
+  const steps = 28;
+  let tx = a.x, ty = a.y;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  for (let i = 1; i <= steps; i++) {
+    const t = p * i / steps;
+    const mt = 1 - t;
+    tx = mt * mt * a.x + 2 * mt * t * b.x + t * t * c.x;
+    ty = mt * mt * a.y + 2 * mt * t * b.y + t * t * c.y;
+    ctx.lineTo(tx, ty);
+  }
+  ctx.strokeStyle = 'rgba(' + rgb + ',0.9)';
+  ctx.lineWidth = 1.4;
+  ctx.shadowColor = 'rgba(' + rgb + ',1)';
+  ctx.shadowBlur = 14;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(' + rgb + ',0.95)';
+  ctx.beginPath();
+  ctx.arc(tx, ty, 2.6, 0, 6.283);
+  ctx.fill();
+}
+
+function drawMergeFx() {
+  if (!mergeFx) return;
+  mergeFx.t += 1 / 60;
+  const p = Math.min(1, mergeFx.t / mergeFx.dur);
+  const e = p * p * (3 - 2 * p);
+  const center = { x: W * 0.5, y: H * 0.5 };
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  drawBranch({ x: -W * 0.05, y: H * 0.72 }, { x: W * 0.3, y: H * 0.3 }, center, e, '255,120,190');
+  drawBranch({ x: W * 1.05, y: H * 0.28 }, { x: W * 0.7, y: H * 0.7 }, center, e, '120,230,255');
+  ctx.restore();
+  if (p >= 1 && !mergeFx.burst) {
+    mergeFx.burst = true;
+    spawnHearts(W * 0.5, H * 0.5, 90);
+    mood.r = 1; mood.g = 0.3; mood.b = 0.64;
+    mood.a = Math.max(mood.a, 0.14);
+  }
+  if (p >= 1 && mergeFx.t > mergeFx.dur + 0.35) mergeFx = null;
+}
+
+function drawMood() {
+  if (mood.a <= 0.002) return;
+  const g = ctx.createRadialGradient(W / 2, H * 0.45, 0, W / 2, H * 0.45, Math.max(W, H) * 0.72);
+  const r = (mood.r * 255) | 0;
+  const g2 = (mood.g * 255) | 0;
+  const b = (mood.b * 255) | 0;
+  g.addColorStop(0, 'rgba(' + r + ',' + g2 + ',' + b + ',' + mood.a + ')');
+  g.addColorStop(1, 'rgba(' + r + ',' + g2 + ',' + b + ',0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  mood.a *= 0.985;
+}
+
+const FX = {
+  glitch: null,
+  reset: null,
+  zoom: null,
+  spin: null,
+  meteor(n) {
+    const t0 = performance.now() / 1000;
+    for (let i = 0; i < (n || 18); i++) spawnMeteor(t0 + i * 0.02);
+  },
+  heart() {
+    spawnHearts(cxN, cyN, 110);
+  },
+  tint(r, g, b, a) {
+    mood.r = r; mood.g = g; mood.b = b;
+    mood.a = Math.max(mood.a, a == null ? 0.12 : a);
+  },
+  merge() {
+    startMergeFx();
+    FX.tint(1, 0.3, 0.64, 0.1);
+    if (FX.glitch) FX.glitch(0.45);
+  }
+};
+
 let glActive = false; // Three.js 是否可用
 
 function drawOverlay(t) {
   ctx.clearRect(0, 0, W, H);
+  drawMood();
+
+  // 精确到秒的说明文字，每秒刷新
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (nowSec !== captionSec) updateCaption();
 
   // 流星
   if (t > nextMeteorAt) spawnMeteor(t);
@@ -317,9 +1454,14 @@ function drawOverlay(t) {
     ctx.globalAlpha = 1;
   }
 
+  // 命令终端触发的 2D 特效
+  drawMergeFx();
+  drawHearts();
+
   // 小字说明 + 饰线（WebGL 模式下跟随 3D 数字的屏幕投影）
   const capX = glActive ? captionInfo.x : cxN;
   const capY = glActive ? captionInfo.y : cyN + numHalfHpx + 42;
+  positionCommandUI();
   if (!glActive || captionInfo.visible) {
     ctx.save();
     const fs = Math.max(14, Math.min(20, W * 0.013));
@@ -330,7 +1472,7 @@ function drawOverlay(t) {
     ctx.fillStyle = 'rgba(190,214,255,' + capA + ')';
     ctx.shadowColor = 'rgba(140,180,255,0.9)';
     ctx.shadowBlur = 14;
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = W < 520 ? '2px' : '4px';
     ctx.fillText(captionText, capX, capY);
     const tw2 = ctx.measureText(captionText).width;
     const lineLen = Math.min(90, W * 0.07);
@@ -607,9 +1749,6 @@ void main(){
   vec3 colA = vec3(0.13, 0.16, 0.22);
   vec3 baseCol = mix(colC, colB, smoothstep(0.20, 0.30, u));
   baseCol = mix(baseCol, colA, smoothstep(0.70, 0.78, u));
-  // 卡西尼缝外缘的蓝色弥散环粒（Cassini PIA08306 实测特征）
-  float blueRinglet = exp(-pow((u-0.735)*120.0, 2.0));
-  baseCol = mix(baseCol, vec3(0.42, 0.48, 0.62), blueRinglet*0.45);
   // 方位向粒子颗粒感（冰粒聚集的非均匀性）
   float ang = atan(vLocalPos.y, vLocalPos.x);
   baseCol *= 0.97 + 0.05*sin(ang*260.0 + u*30.0)*sin(ang*97.0 + 2.0);
@@ -640,11 +1779,10 @@ void main(){
   col += vec3(1.0, 0.12, 0.55) * innerNeon * (0.22 + 0.30*shadow);
   alpha = max(alpha, innerNeon*0.60);
 
-  // —— 赛博朋克化：青色霓虹导轨 + 轨道扫描脉冲 + 编码器刻度 ——
-  float cyanN1 = exp(-pow((u-0.700)*90.0, 2.0));    // 卡西尼缝外缘
+  // —— 赛博朋克化：外缘青色霓虹导轨 + 轨道扫描脉冲 + 编码器刻度 ——
   float cyanN2 = exp(-pow((u-0.985)*120.0, 2.0));   // 环外缘
-  col += vec3(0.15, 0.85, 1.00) * (cyanN1*0.45 + cyanN2*0.30) * (0.30 + 0.70*shadow);
-  alpha = max(alpha, cyanN1*0.45 + cyanN2*0.28);
+  col += vec3(0.15, 0.85, 1.00) * cyanN2*0.30 * (0.30 + 0.70*shadow);
+  alpha = max(alpha, cyanN2*0.28);
 
   float angN = ang/6.28318 + 0.5;
   float sweep = fract(angN - uTime*0.02);           // 沿环轨道行进的扫描脉冲
@@ -991,9 +2129,24 @@ if (THREE) {
   }));
   digitGroup.add(digitGlow);
 
+  // 数字星群配色：白色系 70% + chitori 粉 15% + tarstar 青 15%
   const digitPalette = [
-    [1, 1, 1], [0.81, 0.89, 1], [1, 0.91, 0.77], [1, 0.8, 0.82], [0.85, 1, 0.94]
+    { c: [1.00, 1.00, 1.00], w: 0.38 }, // 纯白
+    { c: [0.81, 0.89, 1.00], w: 0.14 }, // 冷白
+    { c: [1.00, 0.91, 0.77], w: 0.10 }, // 暖白
+    { c: [1.00, 0.80, 0.82], w: 0.04 }, // 粉白
+    { c: [0.85, 1.00, 0.94], w: 0.04 }, // 青白
+    { c: [1.00, 0.30, 0.64], w: 0.15 }, // chitori 粉
+    { c: [0.22, 0.86, 1.00], w: 0.15 }  // tarstar 青
   ];
+  function pickDigitColor() {
+    let r = Math.random();
+    for (const item of digitPalette) {
+      if (r < item.w) return item.c;
+      r -= item.w;
+    }
+    return digitPalette[0].c;
+  }
 
   function buildDigitGeometry() {
     if (digitGeo) { digitGeo.dispose(); digitGroup.remove(digitGroup.getObjectByProperty('type', 'Points')); }
@@ -1018,7 +2171,7 @@ if (THREE) {
       size[i] = 0.8 + Math.random() * 1.8;
       phase[i] = Math.random() * 6.283;
       speed[i] = 0.6 + Math.random() * 1.8;
-      const cc = digitPalette[(Math.random() * digitPalette.length) | 0];
+      const cc = pickDigitColor();
       color[i * 3] = cc[0]; color[i * 3 + 1] = cc[1]; color[i * 3 + 2] = cc[2];
     }
     digitGeo = new THREE.BufferGeometry();
@@ -1196,8 +2349,32 @@ void main(){
   const clock = new THREE.Clock();
   window.__mats = { planet: planetMesh, ring: ringMesh, atmos: atmosMesh, halo, sun: sunSprite, bloom: bloomPass, renderer, pu: planetUniforms }; // 调试接口
 
+  // —— 命令终端 → 3D 场景控制 ——
+  let lastEl = 0;
+  let planetSpin = 0;
+  let spinBoost = 0;
+  FX.glitch = (dur) => {
+    glitchState.start = clock.getElapsedTime();
+    glitchState.dur = dur || 0.6;
+    glitchState.next = clock.getElapsedTime() + 14 + Math.random() * 22;
+  };
+  FX.reset = () => {
+    view.yaw = view.yawT = 0;
+    view.pitch = view.pitchT = 0;
+    view.dolly = view.dollyT = 0;
+    view.vx = view.vy = 0;
+  };
+  FX.zoom = (delta) => {
+    view.dollyT = Math.max(-25, Math.min(90, view.dollyT + delta));
+  };
+  FX.spin = () => {
+    spinBoost = Math.min(3.2, spinBoost + 1.6);
+  };
+
   glTick = function (t) {
     const el = clock.getElapsedTime();
+    const dt = Math.min(0.05, Math.max(0.001, el - lastEl));
+    lastEl = el;
     skyMat.uniforms.uTime.value = el;
     starMat.uniforms.uTime.value = el;
     planetUniforms.uTime.value = el;
@@ -1213,7 +2390,9 @@ void main(){
     const gt = (el - glitchState.start) / glitchState.dur;
     glitchPass.uniforms.uTime.value = el;
     glitchPass.uniforms.uGlitch.value = (gt >= 0 && gt <= 1) ? Math.sin(gt * Math.PI) : 0;
-    planetMesh.rotation.y = el * 0.018; // 缓慢自转
+    if (spinBoost > 0.001) spinBoost *= 0.97;
+    planetSpin += (0.018 + spinBoost) * dt;
+    planetMesh.rotation.y = planetSpin; // 缓慢自转，spin 命令可短暂加速
 
     // 数字星群：真实 3D 摆动 + 视差
     digitGroup.rotation.y = Math.sin(t * 0.11) * 0.30 + mouse.parYCur * 0.55;
@@ -1294,6 +2473,1083 @@ void main(){
     composer.render();
   };
 }
+
+/* ============ 6.5 命令输入 ============ */
+const starBtn = document.getElementById('starBtn');
+const cmdBar = document.getElementById('cmdBar');
+const cmdClose = document.getElementById('cmdClose');
+const sideStack = document.getElementById('sideStack');
+const historyToggle = document.getElementById('historyToggle');
+const hintsToggle = document.getElementById('hintsToggle');
+const historyPanel = document.getElementById('historyPanel');
+const hintsPanel = document.getElementById('hintsPanel');
+const termLog = document.getElementById('termLog');
+const termInput = document.getElementById('termInput');
+const termHints = document.getElementById('termHints');
+
+let termOpen = false;
+let diaryOpen = false;
+let historyOpen = false;
+let hintsOpen = false;
+let hintsTouched = false;
+const history = [];
+let histIdx = 0;
+
+function termLine(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'term-line' + (cls ? ' ' + cls : '');
+  div.textContent = text;
+  termLog.appendChild(div);
+  termLog.scrollTop = termLog.scrollHeight;
+}
+
+function printWelcome() {
+  termLine('chitori ✦ tarstar · 命令输入已连接', 'dim');
+  termLine('输入 help 查看全部命令，右上角可打开历史与提示。', 'dim');
+}
+
+function showHelp() {
+  const lines = ['可用命令:'];
+  for (const group of COMMAND_GROUP_ORDER) {
+    const defs = COMMAND_DEFS.filter(d => d.group === group);
+    if (!defs.length) continue;
+    lines.push('', '[' + group + ']');
+    for (const d of defs) {
+      lines.push('  ' + d.cmd.padEnd(12, ' ') + '  ' + d.desc);
+    }
+  }
+  lines.push('', '也可以点击右上角「提示」直接触发命令。');
+  termLine(lines.join('\n'), 'ok');
+}
+
+function markHistoryNew() {
+  if (termOpen && !historyOpen) historyToggle.classList.add('has-new');
+}
+
+function setPanel(name, open) {
+  if (name === 'history') {
+    historyOpen = open;
+    historyPanel.classList.toggle('show', open);
+    historyPanel.setAttribute('aria-hidden', String(!open));
+    historyToggle.classList.toggle('active', open);
+    historyToggle.setAttribute('aria-expanded', String(open));
+    if (open) historyToggle.classList.remove('has-new');
+  } else {
+    hintsOpen = open;
+    hintsTouched = true;
+    hintsPanel.classList.toggle('show', open);
+    hintsPanel.setAttribute('aria-hidden', String(!open));
+    hintsToggle.classList.toggle('active', open);
+    hintsToggle.setAttribute('aria-expanded', String(open));
+  }
+}
+
+// 星星按钮与长条输入框水平居中；星星保持数字与距离文字之间的高度
+function positionCommandUI() {
+  const capY = glActive ? captionInfo.y : cyN + numHalfHpx + 42;
+  const visible = !glActive || captionInfo.visible;
+
+  starBtn.style.left = (W / 2) + 'px';
+  starBtn.style.top = (capY - 21) + 'px';
+  starBtn.classList.toggle('off', !visible);
+  starBtn.classList.add('placed');
+
+  if (termOpen) {
+    const fs = Math.max(14, Math.min(20, W * 0.013));
+    const by = Math.max(8, Math.min(H - 56, capY + fs + 16));
+    cmdBar.style.left = (W / 2) + 'px';
+    cmdBar.style.top = by + 'px';
+  }
+}
+
+function closeTerminal() {
+  termOpen = false;
+  starBtn.classList.remove('open');
+  starBtn.setAttribute('aria-expanded', 'false');
+  cmdBar.classList.remove('show');
+  cmdBar.setAttribute('aria-hidden', 'true');
+  sideStack.classList.remove('show');
+  sideStack.setAttribute('aria-hidden', 'true');
+  termInput.blur();
+  starBtn.focus({ preventScroll: true });
+}
+
+function openTerminal() {
+  termOpen = true;
+  starBtn.classList.add('open');
+  starBtn.setAttribute('aria-expanded', 'true');
+  cmdBar.classList.remove('off');
+  cmdBar.classList.add('show');
+  cmdBar.setAttribute('aria-hidden', 'false');
+  sideStack.classList.add('show');
+  sideStack.setAttribute('aria-hidden', 'false');
+  if (!termLog.childElementCount) printWelcome();
+  if (!hintsTouched) setPanel('hints', true);
+  positionCommandUI();
+  hideHint();
+  setTimeout(() => termInput.focus(), 60);
+}
+
+function navigateHistory(dir) {
+  if (!history.length) return;
+  histIdx = Math.max(0, Math.min(history.length, histIdx + dir));
+  termInput.value = histIdx === history.length ? '' : history[histIdx];
+  const len = termInput.value.length;
+  requestAnimationFrame(() => termInput.setSelectionRange(len, len));
+}
+
+function runCommand(raw) {
+  const input = (raw || '').trim();
+  if (!input) return;
+  termLine('$ ' + input, 'cmd');
+  history.push(input);
+  histIdx = history.length;
+
+  const key = input.toLowerCase();
+  const zoomArg = key.match(/^zoom\s+(-?\d+(?:\.\d+)?)$/);
+  if (zoomArg) {
+    if (FX.zoom) { FX.zoom(Number(zoomArg[1])); termLine('视角推进 ' + zoomArg[1] + '。', 'ok'); }
+    else termLine('当前为降级模式，没有 3D 视角。', 'dim');
+    markHistoryNew();
+    termInput.value = '';
+    termLog.scrollTop = termLog.scrollHeight;
+    return;
+  }
+
+  const def = COMMAND_DEFS.find(d =>
+    d.cmd.toLowerCase() === key ||
+    (d.aliases || []).some(a => a.toLowerCase() === key)
+  );
+  if (def) {
+    def.run(input);
+  } else {
+    termLine('command not found: ' + input, 'err');
+    termLine('输入 help 查看可用命令。', 'dim');
+  }
+  markHistoryNew();
+  termInput.value = '';
+  termLog.scrollTop = termLog.scrollHeight;
+}
+
+function buildHints() {
+  for (const group of COMMAND_GROUP_ORDER) {
+    const defs = COMMAND_DEFS.filter(d => d.group === group);
+    if (!defs.length) continue;
+    const section = document.createElement('div');
+    section.className = 'term-hint-group';
+    const title = document.createElement('div');
+    title.className = 'term-hint-title';
+    title.textContent = group;
+    const items = document.createElement('div');
+    items.className = 'term-hint-items';
+    for (const d of defs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'term-hint';
+      const cmd = document.createElement('b');
+      cmd.textContent = d.cmd;
+      const desc = document.createElement('span');
+      desc.textContent = d.desc;
+      btn.appendChild(cmd);
+      btn.appendChild(desc);
+      btn.addEventListener('click', () => {
+        runCommand(d.cmd);
+        if (termOpen && !diaryOpen) termInput.focus();
+      });
+      items.appendChild(btn);
+    }
+    section.appendChild(title);
+    section.appendChild(items);
+    termHints.appendChild(section);
+  }
+}
+
+const COMMAND_GROUP_ORDER = ['日记', '信息', '特效', '视角', '终端'];
+
+const COMMAND_DEFS = [
+  { cmd: 'diary', group: '日记', aliases: ['日记', 'journal'], desc: '打开全息日记', run: () => {
+      termLine('✦ 全息日记已展开。', 'ok');
+      openDiary();
+    } },
+  { cmd: 'help', group: '信息', desc: '查看所有命令', run: () => { setPanel('hints', true); showHelp(); } },
+  { cmd: 'date', group: '信息', desc: '查看纪念日信息', run: () => {
+      termLine('纪念日: 2026-06-22 00:00:00', 'ok');
+      termLine(captionText, 'ok');
+    } },
+  { cmd: 'whoami', group: '信息', desc: '我是谁', run: () => {
+      termLine('chitori ✦ tarstar', 'ok');
+      termLine('uid=1(us) gid=1(us) groups=1(us),0(root)', 'dim');
+    } },
+  { cmd: 'meteor', group: '特效', desc: '来一场流星雨', run: () => {
+      FX.meteor(28);
+      termLine('✦ 流星雨已抵达。', 'ok');
+    } },
+  { cmd: 'glitch', group: '特效', desc: '信号干扰', run: () => {
+      if (FX.glitch) { FX.glitch(0.7); termLine('⚠ 检测到不明信号……', 'warn'); }
+      else termLine('当前环境不支持故障特效。', 'dim');
+    } },
+  { cmd: 'reset', group: '视角', desc: '复位视角', run: () => {
+      if (FX.reset) { FX.reset(); termLine('视角已复位。', 'ok'); }
+      else termLine('当前为降级模式，没有 3D 视角。', 'dim');
+    } },
+  { cmd: 'zoom in', group: '视角', desc: '推进视角', run: () => {
+      if (FX.zoom) { FX.zoom(35); termLine('推进视角。', 'ok'); }
+      else termLine('当前为降级模式，没有 3D 视角。', 'dim');
+    } },
+  { cmd: 'zoom out', group: '视角', desc: '拉远视角', run: () => {
+      if (FX.zoom) { FX.zoom(-20); termLine('拉远视角。', 'ok'); }
+      else termLine('当前为降级模式，没有 3D 视角。', 'dim');
+    } },
+  { cmd: 'spin', group: '视角', desc: '让土星转快一点', run: () => {
+      if (FX.spin) { FX.spin(); termLine('土星自转加速中……', 'ok'); }
+      else termLine('当前为降级模式，没有 3D 星球。', 'dim');
+    } },
+  { cmd: 'clear', group: '终端', desc: '清空终端', run: () => { termLog.innerHTML = ''; } },
+  { cmd: 'exit', group: '终端', aliases: ['close', 'quit'], desc: '关闭终端', run: closeTerminal }
+];
+
+starBtn.addEventListener('click', () => {
+  if (termOpen) closeTerminal();
+  else openTerminal();
+});
+cmdClose.addEventListener('click', closeTerminal);
+historyToggle.addEventListener('click', () => setPanel('history', !historyOpen));
+hintsToggle.addEventListener('click', () => setPanel('hints', !hintsOpen));
+document.querySelectorAll('.side-close').forEach(btn => {
+  btn.addEventListener('click', () => setPanel(btn.dataset.close, false));
+});
+
+termInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    runCommand(termInput.value);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeTerminal();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    navigateHistory(-1);
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    navigateHistory(1);
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.isComposing || e.key !== 'Escape') return;
+  if (diaryOpen) {
+    e.preventDefault();
+    closeDiary();
+    return;
+  }
+  if (termOpen) closeTerminal();
+});
+
+buildHints();
+
+/* ============ 6.6 全息日记（GitHub Markdown） ============ */
+// 日记以 Markdown 文件保存在一个独立的私有仓库里，通过 GitHub Contents API 读写。
+// 使用前：
+// 1. 新建一个私有仓库（默认下面用的是 ShawTarstar/our-diary，可自行改名）
+// 2. 把 DIARY_REPO 改成 你的用户名/私有仓库名
+// 3. DIARY_BRANCH / DIARY_DIR 按需修改
+// 4. 在页面里输入对该仓库有 Contents 读写权限的 fine-grained token
+const DIARY_PRIVATE = true;
+const DIARY_REPO = 'ShawTarstar/our-diary';
+const DIARY_BRANCH = 'main';
+const DIARY_DIR = 'diaries';
+const DIARY_API = 'https://api.github.com';
+
+const diaryOverlay = document.getElementById('diaryOverlay');
+const diaryWindow = document.getElementById('diaryWindow');
+const diaryClose = document.getElementById('diaryClose');
+const diaryNewBtn = document.getElementById('diaryNew');
+const diaryList = document.getElementById('diaryList');
+const diaryCount = document.getElementById('diaryCount');
+const diaryTitle = document.getElementById('diaryTitle');
+const diaryContent = document.getElementById('diaryContent');
+const diaryMeta = document.getElementById('diaryMeta');
+const diaryChars = document.getElementById('diaryChars');
+const diarySaveState = document.getElementById('diarySaveState');
+const diarySaveBtn = document.getElementById('diarySave');
+const diaryDeleteBtn = document.getElementById('diaryDelete');
+const diaryExportBtn = document.getElementById('diaryExport');
+const diaryEditBtn = document.getElementById('diaryEdit');
+const diaryClock = document.getElementById('diaryClock');
+const diaryRepoState = document.getElementById('diaryRepoState');
+const diaryConnect = document.getElementById('diaryConnect');
+const diaryAuth = document.getElementById('diaryAuth');
+const diaryTokenInput = document.getElementById('diaryToken');
+const diaryAuthSave = document.getElementById('diaryAuthSave');
+const diaryAuthCancel = document.getElementById('diaryAuthCancel');
+
+let diaryEntries = [];
+let diaryActiveId = null;
+let diaryDirty = false;
+let diaryEditing = false;
+let diaryEditSnapshot = null;
+let diaryCloseArmed = false;
+let diaryCloseTimer = null;
+let diaryClockTimer = null;
+let diaryDeleteArmed = false;
+let diaryDeleteTimer = null;
+let diaryToken = '';
+let diaryLoaded = false;
+let diaryLoading = false;
+let diarySaving = false;
+
+function diaryTime(ts) {
+  const d = new Date(ts);
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+function formatDiaryDate(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+
+function isoLocal(ts) {
+  const d = new Date(ts);
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const oh = pad2(Math.floor(Math.abs(off) / 60));
+  const om = pad2(Math.abs(off) % 60);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()) + sign + oh + ':' + om;
+}
+
+function encodeBase64Utf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+function decodeBase64Utf8(b64) {
+  const bin = atob(String(b64 || '').replace(/\s/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function newDiaryFileName(ts) {
+  const d = new Date(ts);
+  const rand = Math.random().toString(36).slice(2, 5);
+  return 'diary-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds()) + '-' + rand + '.md';
+}
+
+function buildDiaryMarkdown(title, content, createdAt, updatedAt) {
+  return '---\n' +
+    'title: ' + JSON.stringify(title || '无题') + '\n' +
+    'date: ' + isoLocal(createdAt) + '\n' +
+    'updated: ' + isoLocal(updatedAt) + '\n' +
+    '---\n\n' +
+    String(content || '').replace(/\r\n/g, '\n');
+}
+
+function parseDiaryMarkdown(name, text) {
+  let title = name.replace(/\.md$/i, '');
+  let content = text;
+  let createdAt = 0;
+  let updatedAt = 0;
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
+  if (m) {
+    const fm = m[1];
+    const get = key => {
+      const mm = new RegExp('^' + key + ':\\s*(.*)$', 'm').exec(fm);
+      if (!mm) return '';
+      let v = mm[1].trim();
+      if (v.startsWith('"')) {
+        try { v = JSON.parse(v); } catch (e) { v = v.slice(1, -1); }
+      } else if (v.startsWith("'") && v.endsWith("'")) {
+        v = v.slice(1, -1);
+      }
+      return v;
+    };
+    title = get('title') || title;
+    const d = Date.parse(get('date'));
+    const u = Date.parse(get('updated'));
+    createdAt = Number.isNaN(d) ? 0 : d;
+    updatedAt = Number.isNaN(u) ? createdAt : u;
+    content = m[2].replace(/^\r?\n/, '');
+  }
+  if (!createdAt || !updatedAt) {
+    const fm = name.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/);
+    const fallback = fm ? new Date(+fm[1], +fm[2] - 1, +fm[3], +fm[4], +fm[5], +fm[6]).getTime() : Date.now();
+    if (!createdAt) createdAt = fallback;
+    if (!updatedAt) updatedAt = createdAt;
+  }
+  return { name, title, content, createdAt, updatedAt };
+}
+
+function ghHeaders(extra) {
+  const headers = {
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  if (diaryToken) headers.Authorization = 'Bearer ' + diaryToken;
+  if (extra) Object.assign(headers, extra);
+  return headers;
+}
+
+async function ghFetch(path, options) {
+  const opts = options || {};
+  const res = await fetch(DIARY_API + path, {
+    ...opts,
+    headers: ghHeaders(opts.headers),
+    cache: 'no-store'
+  });
+  if (!res.ok) {
+    let message = res.status + ' ' + res.statusText;
+    try {
+      const data = await res.json();
+      if (data && data.message) message = res.status + ' ' + data.message;
+    } catch (e) {}
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function setDiaryStatus(text, cls) {
+  diarySaveState.textContent = text;
+  diarySaveState.className = 'diary-save-state' + (cls ? ' ' + cls : '');
+}
+
+function setDiaryRepoState(mode) {
+  diaryRepoState.classList.remove('online', 'err');
+  if (mode === 'loading') {
+    diaryRepoState.textContent = 'GITHUB // 读取中…';
+  } else if (mode === 'error') {
+    diaryRepoState.textContent = 'GITHUB // 连接失败';
+    diaryRepoState.classList.add('err');
+  } else if (DIARY_PRIVATE) {
+    diaryRepoState.textContent = diaryToken ? 'GITHUB // 私有仓库已连接' : 'GITHUB // 私有仓库未连接';
+    if (diaryToken) diaryRepoState.classList.add('online');
+  } else {
+    diaryRepoState.textContent = diaryToken ? 'GITHUB // 已连接' : 'GITHUB // 只读';
+    if (diaryToken) diaryRepoState.classList.add('online');
+  }
+  diaryConnect.textContent = diaryToken ? '断开' : '连接';
+}
+
+function showDiaryAuth(show) {
+  diaryAuth.classList.toggle('show', show);
+  diaryAuth.setAttribute('aria-hidden', String(!show));
+  if (show) {
+    setTimeout(() => diaryTokenInput.focus(), 50);
+  } else {
+    diaryTokenInput.value = '';
+  }
+}
+
+function updateDiaryMeta() {
+  diaryChars.textContent = diaryContent.value.length + ' chars';
+  const entry = diaryEntries.find(e => e.id === diaryActiveId);
+  const mode = diaryEditing ? 'EDITING' : 'VIEW';
+  diaryMeta.textContent = entry
+    ? formatDiaryDate(entry.updatedAt) + ' // ' + mode
+    : 'NEW ENTRY // ' + mode;
+}
+
+function setDiaryEditing(on) {
+  diaryEditing = on;
+  diaryTitle.readOnly = !on;
+  diaryContent.readOnly = !on;
+  diarySaveBtn.disabled = !on;
+  diaryEditBtn.textContent = on ? '取消' : '编辑';
+  diaryEditBtn.classList.toggle('active', on);
+  diaryWindow.classList.toggle('editing', on);
+  if (!on) diaryEditSnapshot = null;
+  updateDiaryMeta();
+}
+
+function startEditing() {
+  if (diaryEditing) return;
+  diaryEditSnapshot = { title: diaryTitle.value, content: diaryContent.value };
+  diaryDirty = false;
+  setDiaryEditing(true);
+  setDiaryStatus(diaryActiveId ? 'EDITING // 修改后点击保存' : 'EDITING // 新日记，保存后写入仓库', 'warn');
+  diaryTitle.focus();
+}
+
+function cancelEditing() {
+  if (!diaryEditing) return;
+  if (diaryEditSnapshot) {
+    diaryTitle.value = diaryEditSnapshot.title;
+    diaryContent.value = diaryEditSnapshot.content;
+  }
+  diaryDirty = false;
+  setDiaryEditing(false);
+  updateDiaryMeta();
+  setDiaryStatus('VIEW // 已取消编辑', '');
+  resetDiaryDelete();
+}
+
+function resetDiaryDelete() {
+  diaryDeleteArmed = false;
+  clearTimeout(diaryDeleteTimer);
+  diaryDeleteTimer = null;
+  diaryDeleteBtn.textContent = '删除';
+  diaryDeleteBtn.classList.remove('armed');
+}
+
+function updateDiaryClock() {
+  const d = new Date();
+  diaryClock.textContent = 'SYS // ' + d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+function startDiaryClock() {
+  updateDiaryClock();
+  clearInterval(diaryClockTimer);
+  diaryClockTimer = setInterval(updateDiaryClock, 1000);
+}
+
+function stopDiaryClock() {
+  clearInterval(diaryClockTimer);
+  diaryClockTimer = null;
+}
+
+function renderDiaryList() {
+  diaryList.innerHTML = '';
+  if (diaryLoading) {
+    const loading = document.createElement('div');
+    loading.className = 'diary-empty-list';
+    loading.textContent = 'LOADING // 正在读取 GitHub…';
+    diaryList.appendChild(loading);
+    diaryCount.textContent = '—';
+    return;
+  }
+  const sorted = [...diaryEntries].sort((a, b) => b.updatedAt - a.updatedAt);
+  if (!sorted.length) {
+    const empty = document.createElement('div');
+    empty.className = 'diary-empty-list';
+    empty.textContent = 'NO ENTRIES // 暂无日记';
+    diaryList.appendChild(empty);
+  }
+  for (const entry of sorted) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'diary-item' + (entry.id === diaryActiveId ? ' active' : '');
+    const date = document.createElement('span');
+    date.className = 'diary-item-date';
+    date.textContent = formatDiaryDate(entry.updatedAt);
+    const title = document.createElement('span');
+    title.className = 'diary-item-title';
+    title.textContent = entry.title;
+    btn.appendChild(date);
+    btn.appendChild(title);
+    btn.addEventListener('click', () => selectDiary(entry.id));
+    diaryList.appendChild(btn);
+  }
+  diaryCount.textContent = sorted.length + ' ENTRIES';
+}
+
+async function fetchDiaryFile(file) {
+  let text = '';
+  if (!DIARY_PRIVATE && file.download_url) {
+    try {
+      const sep = file.download_url.includes('?') ? '&' : '?';
+      const res = await fetch(file.download_url + sep + 't=' + Date.now(), { cache: 'no-store' });
+      if (res.ok) text = await res.text();
+    } catch (e) {}
+  }
+  if (!text) {
+    const data = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + file.path + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+    text = decodeBase64Utf8(data.content);
+  }
+  const entry = parseDiaryMarkdown(file.name, text);
+  entry.id = file.path;
+  entry.path = file.path;
+  entry.sha = file.sha;
+  return entry;
+}
+
+async function loadDiaryFromGitHub() {
+  if (diaryLoading) return;
+  diaryLoading = true;
+  setDiaryRepoState('loading');
+  setDiaryStatus('LOADING // 正在读取 GitHub…', 'warn');
+  renderDiaryList();
+  try {
+    const list = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + DIARY_DIR + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+    const files = Array.isArray(list)
+      ? list.filter(f => f.type === 'file' && /\.md$/i.test(f.name) && !/^readme\.md$/i.test(f.name))
+      : [];
+    const settled = await Promise.allSettled(files.map(fetchDiaryFile));
+    diaryEntries = settled
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    diaryLoaded = true;
+    setDiaryRepoState('read');
+  } catch (err) {
+    if (err.status === 404) {
+      try {
+        await ghFetch('/repos/' + DIARY_REPO);
+        diaryEntries = [];
+        diaryLoaded = true;
+        setDiaryRepoState('read');
+        setDiaryStatus(DIARY_PRIVATE ? 'GITHUB // 私有仓库目录为空，写第一篇吧' : 'GITHUB // 日记目录为空，写第一篇吧', '');
+      } catch (repoErr) {
+        diaryEntries = [];
+        diaryLoaded = false;
+        diaryToken = '';
+        showDiaryAuth(true);
+        setDiaryRepoState('error');
+        setDiaryStatus('GITHUB // 仓库不存在或无权限', 'err');
+      }
+    } else {
+      diaryEntries = [];
+      diaryLoaded = false;
+      if (err.status === 401 || err.status === 403) {
+        diaryToken = '';
+        showDiaryAuth(true);
+      }
+      setDiaryRepoState('error');
+      setDiaryStatus('GITHUB // ' + err.message, 'err');
+    }
+  } finally {
+    diaryLoading = false;
+    renderDiaryList();
+    updateDiaryMeta();
+  }
+}
+
+async function loadDiaryFromSite() {
+  if (diaryLoading) return;
+  diaryLoading = true;
+  setDiaryStatus('LOADING // 正在读取 Markdown…', 'warn');
+  renderDiaryList();
+  try {
+    const indexUrl = new URL('diary/index.json', window.location.href);
+    indexUrl.searchParams.set('t', String(Date.now()));
+    const indexRes = await fetch(indexUrl, { cache: 'no-store' });
+    if (indexRes.status === 404) {
+      diaryEntries = [];
+      diaryLoaded = true;
+      setDiaryStatus('READY // 新建第一篇 Markdown 日记', '');
+    } else if (!indexRes.ok) {
+      throw new Error(indexRes.status + ' ' + indexRes.statusText);
+    } else {
+      const data = await indexRes.json();
+      const files = Array.isArray(data.files)
+        ? data.files.filter(n => /\.md$/i.test(n) && !/^readme\.md$/i.test(n))
+        : [];
+      const settled = await Promise.allSettled(files.map(async name => {
+        const fileUrl = new URL('diary/' + encodeURIComponent(name), window.location.href);
+        fileUrl.searchParams.set('t', String(Date.now()));
+        const res = await fetch(fileUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        const text = await res.text();
+        const entry = parseDiaryMarkdown(name, text);
+        entry.id = DIARY_DIR + '/' + name;
+        entry.path = entry.id;
+        entry.name = name;
+        return entry;
+      }));
+      diaryEntries = settled
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value)
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+      diaryLoaded = true;
+      setDiaryStatus('READY // 已读取 ' + diaryEntries.length + ' 篇 Markdown', '');
+    }
+  } catch (err) {
+    diaryEntries = [];
+    diaryLoaded = false;
+    setDiaryStatus('MARKDOWN // ' + err.message, 'err');
+  } finally {
+    diaryLoading = false;
+    renderDiaryList();
+    updateDiaryMeta();
+  }
+}
+
+async function loadDiaryEntries() {
+  if (DIARY_PRIVATE && !diaryToken) {
+    diaryEntries = [];
+    diaryLoaded = false;
+    setDiaryStatus('PRIVATE // 连接 token 后读取私有日记', 'warn');
+    showDiaryAuth(true);
+    renderDiaryList();
+    updateDiaryMeta();
+    return;
+  }
+  if (diaryToken) return loadDiaryFromGitHub();
+  return loadDiaryFromSite();
+}
+
+async function connectDiary() {
+  const token = diaryTokenInput.value.trim();
+  if (!token) {
+    setDiaryStatus('TOKEN REQUIRED // 请输入 GitHub token', 'warn');
+    return;
+  }
+  diaryToken = token;
+  showDiaryAuth(false);
+  setDiaryRepoState('loading');
+  setDiaryStatus('GITHUB // 正在验证 token…', 'warn');
+  const hadEntries = diaryEntries.length > 0;
+  const hadDraft = diaryDirty || diaryTitle.value || diaryContent.value;
+  await loadDiaryFromGitHub();
+  if (!diaryLoaded) return;
+  if (!hadEntries && !hadDraft && diaryEntries.length) {
+    const latest = diaryEntries[0];
+    diaryActiveId = latest.id;
+    diaryTitle.value = latest.title;
+    diaryContent.value = latest.content;
+    diaryDirty = false;
+    resetDiaryDelete();
+    setDiaryEditing(false);
+    renderDiaryList();
+    updateDiaryMeta();
+    setDiaryStatus('VIEW // 已连接并载入', 'ok');
+    diaryEditBtn.focus();
+  } else {
+    setDiaryStatus(diaryEditing ? 'EDITING // 已连接，可以保存' : 'VIEW // 已连接，点击编辑开始', 'ok');
+    if (diaryEditing) diaryTitle.focus();
+    else diaryEditBtn.focus();
+  }
+}
+
+async function saveDiary(silent) {
+  if (!diaryEditing) {
+    if (!silent) setDiaryStatus('VIEW // 请先点击编辑', 'warn');
+    return false;
+  }
+  if (diarySaving) return false;
+  const title = diaryTitle.value.trim();
+  const content = diaryContent.value;
+  if (!diaryActiveId && !title && !content.trim()) {
+    diaryDirty = false;
+    if (!silent) setDiaryStatus('EMPTY // 空白内容不会保存', 'warn');
+    return true;
+  }
+  if (!diaryToken) {
+    showDiaryAuth(true);
+    setDiaryStatus('GITHUB // 请先连接 GitHub 后保存', 'warn');
+    return false;
+  }
+  diarySaving = true;
+  setDiaryStatus('SYNCING // 正在提交到 GitHub…', 'warn');
+  const now = Date.now();
+  const entry = diaryEntries.find(e => e.id === diaryActiveId);
+  const createdAt = entry ? entry.createdAt : now;
+  const fileName = entry ? entry.name : newDiaryFileName(now);
+  const path = entry ? entry.path : DIARY_DIR + '/' + fileName;
+  const markdown = buildDiaryMarkdown(title || '无题', content, createdAt, now);
+  const body = {
+    message: 'diary: ' + (title || '无题'),
+    content: encodeBase64Utf8(markdown),
+    branch: DIARY_BRANCH
+  };
+  try {
+    if (entry) {
+      const info = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + path + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+      if (info && info.sha) body.sha = info.sha;
+    }
+    const result = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const sha = result && result.content && result.content.sha;
+    if (entry) {
+      entry.title = title || '无题';
+      entry.content = content;
+      entry.updatedAt = now;
+      entry.sha = sha || entry.sha;
+    } else {
+      const newEntry = {
+        id: path,
+        name: fileName,
+        path,
+        sha,
+        title: title || '无题',
+        content,
+        createdAt: now,
+        updatedAt: now
+      };
+      diaryEntries.push(newEntry);
+      diaryActiveId = path;
+    }
+    if (!title) diaryTitle.value = '无题';
+    diaryDirty = false;
+    setDiaryEditing(false);
+    renderDiaryList();
+    updateDiaryMeta();
+    setDiaryStatus('SYNCED // 已提交到 GitHub', 'ok');
+    return true;
+  } catch (err) {
+    if (err.status === 409) {
+      setDiaryStatus('CONFLICT // 文件已在别处更新，请关闭后重开', 'err');
+    } else if (err.status === 401 || err.status === 403) {
+      diaryToken = '';
+      setDiaryRepoState('error');
+      showDiaryAuth(true);
+      setDiaryStatus('AUTH // token 无权限或已失效', 'err');
+    } else {
+      setDiaryStatus('ERROR // ' + err.message, 'err');
+    }
+    return false;
+  } finally {
+    diarySaving = false;
+  }
+}
+
+async function selectDiary(id) {
+  if (id === diaryActiveId) return;
+  if (diaryEditing && diaryDirty) {
+    setDiaryStatus('UNSAVED // 请先保存或取消编辑', 'warn');
+    return;
+  }
+  const entry = diaryEntries.find(e => e.id === id);
+  if (!entry) return;
+  diaryActiveId = id;
+  diaryTitle.value = entry.title;
+  diaryContent.value = entry.content;
+  diaryDirty = false;
+  resetDiaryDelete();
+  setDiaryEditing(false);
+  renderDiaryList();
+  updateDiaryMeta();
+  setDiaryStatus('VIEW // 已载入', 'ok');
+}
+
+async function newDiary(focus) {
+  if (diaryEditing && diaryDirty) {
+    setDiaryStatus('UNSAVED // 请先保存或取消编辑', 'warn');
+    return;
+  }
+  if (diaryEditing) setDiaryEditing(false);
+  diaryActiveId = null;
+  diaryTitle.value = '';
+  diaryContent.value = '';
+  diaryDirty = false;
+  resetDiaryDelete();
+  renderDiaryList();
+  diaryEditSnapshot = { title: '', content: '' };
+  setDiaryEditing(true);
+  updateDiaryMeta();
+  setDiaryStatus('EDITING // 新建日记', 'warn');
+  if (focus !== false) diaryTitle.focus();
+}
+
+function onDiaryInput() {
+  if (!diaryEditing) return;
+  diaryDirty = true;
+  updateDiaryMeta();
+  setDiaryStatus('EDITING // 未保存', 'warn');
+}
+
+async function handleDiaryDelete() {
+  if (!diaryActiveId) {
+    setDiaryStatus('NO ENTRY // 没有可删除的日记', 'warn');
+    return;
+  }
+  if (!diaryDeleteArmed) {
+    diaryDeleteArmed = true;
+    diaryDeleteBtn.textContent = '确认删除？';
+    diaryDeleteBtn.classList.add('armed');
+    clearTimeout(diaryDeleteTimer);
+    diaryDeleteTimer = setTimeout(resetDiaryDelete, 3000);
+    return;
+  }
+  resetDiaryDelete();
+  const entry = diaryEntries.find(e => e.id === diaryActiveId);
+  if (!entry) return;
+  if (!diaryToken) {
+    showDiaryAuth(true);
+    setDiaryStatus('GITHUB // 请先连接后删除', 'warn');
+    return;
+  }
+  setDiaryStatus('DELETING // 正在从 GitHub 删除…', 'warn');
+  try {
+    const info = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + entry.path + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+    await ghFetch('/repos/' + DIARY_REPO + '/contents/' + entry.path, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'diary: delete ' + entry.title,
+        sha: info.sha,
+        branch: DIARY_BRANCH
+      })
+    });
+    diaryEntries = diaryEntries.filter(e => e.id !== entry.id);
+    diaryActiveId = null;
+    diaryTitle.value = '';
+    diaryContent.value = '';
+    diaryDirty = false;
+    setDiaryEditing(false);
+    renderDiaryList();
+    updateDiaryMeta();
+    setDiaryStatus('DELETED // 已从 GitHub 删除', 'warn');
+    diaryEditBtn.focus();
+  } catch (err) {
+    if (err.status === 409 || err.status === 404) {
+      setDiaryStatus('CONFLICT // 文件已变化，请关闭后重开', 'err');
+    } else if (err.status === 401 || err.status === 403) {
+      diaryToken = '';
+      setDiaryRepoState('error');
+      showDiaryAuth(true);
+      setDiaryStatus('AUTH // token 无权限或已失效', 'err');
+    } else {
+      setDiaryStatus('ERROR // ' + err.message, 'err');
+    }
+  }
+}
+
+function exportDiaryMarkdown() {
+  const title = diaryTitle.value.trim() || '无题';
+  const content = diaryContent.value;
+  const now = Date.now();
+  const entry = diaryEntries.find(e => e.id === diaryActiveId);
+  const createdAt = entry ? entry.createdAt : now;
+  const markdown = buildDiaryMarkdown(title, content, createdAt, now);
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = entry ? entry.name : newDiaryFileName(now);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setDiaryStatus('EXPORTED // 已下载 Markdown', 'ok');
+}
+
+async function openDiary() {
+  if (diaryOpen) return;
+  diaryOpen = true;
+  diaryEntries = [];
+  diaryActiveId = null;
+  diaryDirty = false;
+  diaryLoaded = false;
+  resetDiaryDelete();
+  diaryTitle.value = '';
+  diaryContent.value = '';
+  setDiaryEditing(false);
+  diaryOverlay.classList.add('show');
+  diaryOverlay.setAttribute('aria-hidden', 'false');
+  diaryList.innerHTML = '<div class="diary-empty-list">LOADING // 正在读取 Markdown…</div>';
+  diaryCount.textContent = '—';
+  setDiaryStatus('LOADING // 正在读取 Markdown…', 'warn');
+  setDiaryRepoState('read');
+  startDiaryClock();
+  await loadDiaryEntries();
+  if (!diaryOpen) return;
+  if (diaryEntries.length) {
+    const latest = diaryEntries[0];
+    diaryActiveId = latest.id;
+    diaryTitle.value = latest.title;
+    diaryContent.value = latest.content;
+    diaryDirty = false;
+    setDiaryEditing(false);
+    setDiaryStatus('VIEW // 已载入', 'ok');
+  } else {
+    diaryActiveId = null;
+    diaryTitle.value = '';
+    diaryContent.value = '';
+    diaryDirty = false;
+    setDiaryEditing(false);
+    if (!diaryLoaded) {
+      if (DIARY_PRIVATE && !diaryToken) {
+        setDiaryStatus('PRIVATE // 连接 token 后读取私有日记', 'warn');
+        showDiaryAuth(true);
+      } else {
+        setDiaryStatus('MARKDOWN // 无法读取日记目录', 'err');
+      }
+    } else {
+      setDiaryStatus('VIEW // 点击编辑开始', '');
+    }
+  }
+  renderDiaryList();
+  updateDiaryMeta();
+  setTimeout(() => {
+    if (!diaryOpen) return;
+    if (diaryAuth.classList.contains('show')) diaryTokenInput.focus();
+    else diaryEditBtn.focus();
+  }, 140);
+}
+
+async function closeDiary() {
+  if (!diaryOpen) return;
+  if (diaryEditing && diaryDirty && !diaryCloseArmed) {
+    diaryCloseArmed = true;
+    clearTimeout(diaryCloseTimer);
+    diaryCloseTimer = setTimeout(() => { diaryCloseArmed = false; }, 2500);
+    setDiaryStatus('UNSAVED // 再点一次关闭将丢弃修改', 'warn');
+    return;
+  }
+  diaryCloseArmed = false;
+  clearTimeout(diaryCloseTimer);
+  if (diaryEditing) setDiaryEditing(false);
+  diaryDirty = false;
+  diaryOpen = false;
+  diaryOverlay.classList.remove('show');
+  diaryOverlay.setAttribute('aria-hidden', 'true');
+  stopDiaryClock();
+  resetDiaryDelete();
+  showDiaryAuth(false);
+  if (termOpen) setTimeout(() => termInput.focus(), 60);
+  else starBtn.focus({ preventScroll: true });
+}
+
+diaryClose.addEventListener('click', closeDiary);
+diaryOverlay.addEventListener('click', (e) => {
+  if (e.target === diaryOverlay) closeDiary();
+});
+diaryNewBtn.addEventListener('click', () => newDiary(true));
+diarySaveBtn.addEventListener('click', () => saveDiary(false));
+diaryExportBtn.addEventListener('click', exportDiaryMarkdown);
+diaryDeleteBtn.addEventListener('click', handleDiaryDelete);
+diaryEditBtn.addEventListener('click', () => {
+  if (diaryEditing) cancelEditing();
+  else startEditing();
+});
+diaryTitle.addEventListener('input', onDiaryInput);
+diaryContent.addEventListener('input', onDiaryInput);
+diaryTitle.addEventListener('keydown', (e) => {
+  if (e.isComposing || !diaryEditing) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    diaryContent.focus();
+  }
+});
+diaryWindow.addEventListener('keydown', (e) => {
+  if (e.isComposing) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    saveDiary(false);
+  }
+});
+
+diaryConnect.addEventListener('click', () => {
+  if (diaryToken) {
+    diaryToken = '';
+    showDiaryAuth(false);
+    setDiaryRepoState('read');
+    setDiaryStatus('GITHUB // 已断开，当前为只读', 'warn');
+  } else {
+    showDiaryAuth(true);
+  }
+});
+diaryAuthSave.addEventListener('click', connectDiary);
+diaryAuthCancel.addEventListener('click', () => showDiaryAuth(false));
+diaryTokenInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    connectDiary();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    showDiaryAuth(false);
+  }
+});
+
+setDiaryRepoState('read');
 
 /* ============ 7. 启动 ============ */
 resizeAll();
