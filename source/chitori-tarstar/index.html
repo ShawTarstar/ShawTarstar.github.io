@@ -401,8 +401,8 @@
   }
 
   /* ===== 全息日记 ===== */
-  #diaryWindow, #diaryWindow * { box-sizing: border-box; }
-  #diaryOverlay {
+  #diaryWindow, #diaryWindow *, .holo-window, .holo-window * { box-sizing: border-box; }
+  #diaryOverlay, .holo-overlay {
     position: fixed;
     inset: 0;
     z-index: 100;
@@ -418,12 +418,13 @@
     pointer-events: none;
     transition: opacity 0.25s ease, visibility 0.25s;
   }
-  #diaryOverlay.show {
+  .holo-overlay { z-index: 101; }
+  #diaryOverlay.show, .holo-overlay.show {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
   }
-  #diaryWindow {
+  #diaryWindow, .holo-window {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -445,11 +446,11 @@
     opacity: 0;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
   }
-  #diaryOverlay.show #diaryWindow {
+  #diaryOverlay.show #diaryWindow, .holo-overlay.show .holo-window {
     transform: translateY(0) scale(1);
     opacity: 1;
   }
-  #diaryWindow::before {
+  #diaryWindow::before, .holo-window::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -459,7 +460,7 @@
     mix-blend-mode: screen;
     opacity: 0.45;
   }
-  #diaryWindow::after {
+  #diaryWindow::after, .holo-window::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -540,7 +541,7 @@
     color: rgba(140, 230, 255, 0.55);
     white-space: nowrap;
   }
-  #diaryClose {
+  #diaryClose, #anniversaryClose {
     flex: 0 0 auto;
     width: 28px;
     height: 28px;
@@ -552,7 +553,7 @@
     font: 16px/1 "Segoe UI", sans-serif;
     cursor: pointer;
   }
-  #diaryClose:hover {
+  #diaryClose:hover, #anniversaryClose:hover {
     border-color: rgba(255, 100, 160, 0.5);
     background: rgba(255, 100, 160, 0.1);
     color: #ffb3c8;
@@ -624,7 +625,7 @@
     color: #ff8fa8;
     text-shadow: 0 0 10px rgba(255, 90, 140, 0.35);
   }
-  #diaryConnect {
+  #diaryConnect, #annivConnect {
     flex: 0 0 auto;
     padding: 3px 8px;
     border: 1px solid rgba(90, 220, 255, 0.24);
@@ -634,7 +635,7 @@
     font: 9px/1.3 "Microsoft YaHei", "Segoe UI", sans-serif;
     cursor: pointer;
   }
-  #diaryConnect:hover {
+  #diaryConnect:hover, #annivConnect:hover {
     background: rgba(90, 220, 255, 0.14);
     border-color: rgba(90, 220, 255, 0.5);
   }
@@ -652,7 +653,7 @@
     box-shadow: 0 0 30px rgba(90, 220, 255, 0.08) inset;
   }
   .diary-auth.show { display: flex; }
-  #diaryToken {
+  #diaryToken, #annivToken {
     width: 100%;
     padding: 6px 8px;
     border: 1px solid rgba(90, 220, 255, 0.22);
@@ -661,7 +662,7 @@
     color: #dff8ff;
     font: 10px/1.4 "Cascadia Code", Consolas, monospace;
   }
-  #diaryToken:focus {
+  #diaryToken:focus, #annivToken:focus {
     border-color: rgba(90, 220, 255, 0.6);
     box-shadow: 0 0 16px rgba(90, 220, 255, 0.12);
   }
@@ -848,7 +849,401 @@
     color: rgba(255, 120, 190, 0.45);
     white-space: nowrap;
   }
-  #diaryTitle {
+  .anniv-meta {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .anniv-countdown {
+    flex: 0 0 auto;
+    color: #8fffd0;
+    text-shadow: 0 0 10px rgba(80, 255, 180, 0.35);
+    white-space: nowrap;
+  }
+  .anniv-countdown.today {
+    color: #ff8fbe;
+    text-shadow: 0 0 10px rgba(255, 111, 168, 0.45);
+  }
+  .anniv-countdown.past {
+    color: rgba(190, 214, 255, 0.55);
+    text-shadow: none;
+  }
+  .anniv-date-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 10px;
+  }
+  .anniv-date-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.45);
+  }
+  #annivDate {
+    padding: 4px 7px;
+    border: 1px solid rgba(90, 220, 255, 0.22);
+    border-radius: 3px;
+    outline: 0;
+    background: rgba(0, 0, 0, 0.25);
+    color: #dff8ff;
+    font: 11px/1.4 "Cascadia Code", Consolas, monospace;
+    color-scheme: dark;
+  }
+  #annivDate:focus {
+    border-color: rgba(90, 220, 255, 0.6);
+    box-shadow: 0 0 16px rgba(90, 220, 255, 0.12);
+  }
+  #annivDate:disabled {
+    opacity: 0.65;
+    cursor: default;
+  }
+  #annivDate::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
+  .anniv-yearly {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.55);
+    cursor: pointer;
+  }
+  #annivYearly {
+    accent-color: #6fe3ff;
+    cursor: pointer;
+  }
+  #annivYearly:disabled { cursor: default; }
+  .anniv-count {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(140, 230, 255, 0.5);
+  }
+  .anniv-count.today {
+    color: #ff8fbe;
+    text-shadow: 0 0 8px rgba(255, 111, 168, 0.35);
+  }
+  .anniv-count.past {
+    color: rgba(190, 214, 255, 0.35);
+  }
+  .anniv-yearly-badge {
+    padding: 1px 5px;
+    border: 1px solid rgba(143, 255, 208, 0.35);
+    border-radius: 999px;
+    color: #8fffd0;
+    font-size: 8px;
+    line-height: 1.4;
+    letter-spacing: 1px;
+  }
+
+  /* 纪念日便签板 */
+  .anniv-board-window {
+    width: min(1120px, 94vw);
+    height: min(760px, 88vh);
+  }
+  .anniv-toolbar {
+    position: relative;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(90, 220, 255, 0.12);
+    background: rgba(4, 16, 28, 0.35);
+  }
+  .anniv-sync {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .anniv-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+  }
+  .anniv-count-badge {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(140, 230, 255, 0.38);
+    white-space: nowrap;
+  }
+  .anniv-new-btn {
+    padding: 5px 10px;
+    border: 1px solid rgba(90, 220, 255, 0.3);
+    border-radius: 3px;
+    background: rgba(90, 220, 255, 0.08);
+    color: #d8f6ff;
+    font: 10px/1.3 "Microsoft YaHei", "Segoe UI", sans-serif;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .anniv-new-btn:hover {
+    background: rgba(90, 220, 255, 0.16);
+    border-color: rgba(90, 220, 255, 0.55);
+    box-shadow: 0 0 18px rgba(90, 220, 255, 0.16);
+  }
+  .anniv-auth {
+    position: relative;
+    z-index: 35;
+    display: none;
+    margin: 10px 16px 0;
+    padding: 10px;
+    border: 1px solid rgba(90, 220, 255, 0.24);
+    background: linear-gradient(180deg, rgba(4, 22, 38, 0.98), rgba(2, 8, 20, 0.99));
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(90, 220, 255, 0.08);
+  }
+  .anniv-auth.show { display: block; }
+  .anniv-board {
+    position: relative;
+    z-index: 7;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    align-content: start;
+    gap: 18px;
+    padding: 20px;
+    background-image: radial-gradient(rgba(90, 220, 255, 0.08) 1px, transparent 1px);
+    background-size: 22px 22px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(90, 220, 255, 0.25) transparent;
+  }
+  .anniv-board::-webkit-scrollbar { width: 6px; }
+  .anniv-board::-webkit-scrollbar-thumb {
+    background: rgba(90, 220, 255, 0.22);
+    border-radius: 3px;
+  }
+  .anniv-note-card {
+    --note: 120, 180, 255;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 170px;
+    padding: 20px 16px 14px;
+    border: 1px solid rgba(var(--note), 0.38);
+    border-radius: 2px;
+    background: linear-gradient(150deg, rgba(var(--note), 0.16), rgba(3, 8, 18, 0.92) 72%);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 22px rgba(var(--note), 0.07);
+    color: #dcefff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transform: rotate(var(--rot, 0deg));
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .anniv-note-card:hover {
+    transform: rotate(0deg) translateY(-4px) scale(1.012);
+    border-color: rgba(var(--note), 0.65);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 30px rgba(var(--note), 0.18);
+  }
+  .anniv-note-card:focus-visible {
+    outline: 1px solid rgba(var(--note), 0.8);
+    outline-offset: 3px;
+  }
+  .anniv-note-card.tint-cyan,
+  .anniv-note-editor.tint-cyan { --note: 120, 230, 255; }
+  .anniv-note-card.tint-pink,
+  .anniv-note-editor.tint-pink { --note: 255, 111, 168; }
+  .anniv-note-card.tint-violet,
+  .anniv-note-editor.tint-violet { --note: 201, 167, 255; }
+  .anniv-note-card.tint-amber,
+  .anniv-note-editor.tint-amber { --note: 255, 210, 138; }
+  .anniv-note-pin {
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 36px;
+    height: 7px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+    transform: translateX(-50%) rotate(-2deg);
+  }
+  .anniv-note-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+  .anniv-note-date {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(var(--note), 0.8);
+  }
+  .anniv-note-title {
+    width: 100%;
+    color: #e6f9ff;
+    font-size: 18px;
+    line-height: 1.35;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 16px rgba(var(--note), 0.18);
+    word-break: break-word;
+  }
+  .anniv-note-count {
+    color: rgb(var(--note));
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 14px rgba(var(--note), 0.5);
+  }
+  .anniv-note-snippet {
+    display: -webkit-box;
+    width: 100%;
+    overflow: hidden;
+    color: rgba(190, 214, 255, 0.55);
+    font-size: 10.5px;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+  .anniv-note-next {
+    margin-top: auto;
+    padding-top: 4px;
+    color: rgba(var(--note), 0.55);
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .anniv-note-card.anniv-note-new {
+    --note: 120, 180, 255;
+    align-items: center;
+    justify-content: center;
+    border-style: dashed;
+    background: rgba(90, 220, 255, 0.025);
+    color: rgba(190, 230, 255, 0.55);
+    text-align: center;
+  }
+  .anniv-note-card.anniv-note-new:hover {
+    background: rgba(90, 220, 255, 0.08);
+    border-color: rgba(90, 220, 255, 0.55);
+  }
+  .anniv-new-plus {
+    font-size: 30px;
+    line-height: 1;
+    color: rgba(140, 230, 255, 0.65);
+    text-shadow: 0 0 18px rgba(90, 220, 255, 0.4);
+  }
+  .anniv-new-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+  .anniv-board-status {
+    grid-column: 1 / -1;
+    padding: 40px 10px;
+    color: rgba(140, 230, 255, 0.35);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .anniv-board-foot {
+    position: relative;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 16px;
+    border-top: 1px solid rgba(90, 220, 255, 0.12);
+    background: rgba(4, 16, 28, 0.3);
+    color: rgba(140, 230, 255, 0.32);
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .anniv-editor {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 4, 12, 0.58);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .anniv-editor.show { display: flex; }
+  .anniv-editor-backdrop {
+    position: absolute;
+    inset: 0;
+  }
+  .anniv-note-editor {
+    --note: 120, 180, 255;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 92%);
+    max-height: 88%;
+    overflow-y: auto;
+    padding: 24px 22px 16px;
+    border: 1px solid rgba(var(--note), 0.45);
+    border-radius: 2px;
+    background: linear-gradient(155deg, rgba(var(--note), 0.18), rgba(3, 8, 18, 0.97) 65%);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(var(--note), 0.12);
+    color: #dcefff;
+    transform: rotate(-0.6deg);
+  }
+  .anniv-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 6px;
+    color: rgba(var(--note), 0.7);
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+  #annivEditorClose {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid rgba(var(--note), 0.25);
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(220, 240, 255, 0.65);
+    font: 16px/1 "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  #annivEditorClose:hover {
+    border-color: rgba(255, 100, 160, 0.5);
+    background: rgba(255, 100, 160, 0.1);
+    color: #ffb3c8;
+  }
+  .anniv-editor-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .anniv-note-editor #annivName {
+    border-bottom-color: rgba(var(--note), 0.35);
+    text-shadow: 0 0 18px rgba(var(--note), 0.25);
+  }
+  .anniv-note-editor #annivNote {
+    min-height: 140px;
+    border-color: rgba(var(--note), 0.16);
+  }
+  .anniv-note-editor .diary-foot {
+    flex: 0 0 auto;
+  }
+  #diaryTitle, #annivName {
     width: 100%;
     margin-top: 10px;
     padding: 6px 2px 10px;
@@ -861,12 +1256,12 @@
     letter-spacing: 1px;
     text-shadow: 0 0 18px rgba(90, 220, 255, 0.25);
   }
-  #diaryTitle::placeholder { color: rgba(140, 230, 255, 0.25); }
-  #diaryTitle:focus {
+  #diaryTitle::placeholder, #annivName::placeholder { color: rgba(140, 230, 255, 0.25); }
+  #diaryTitle:focus, #annivName:focus {
     border-bottom-color: rgba(90, 220, 255, 0.7);
     box-shadow: 0 8px 20px -16px rgba(90, 220, 255, 0.8);
   }
-  #diaryContent {
+  #diaryContent, #annivNote {
     flex: 1;
     width: 100%;
     min-height: 0;
@@ -885,13 +1280,13 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(90, 220, 255, 0.25) transparent;
   }
-  #diaryContent:focus {
+  #diaryContent:focus, #annivNote:focus {
     border-color: rgba(90, 220, 255, 0.3);
     box-shadow: 0 0 30px rgba(90, 220, 255, 0.06) inset;
   }
-  #diaryContent::placeholder { color: rgba(140, 230, 255, 0.22); }
-  #diaryContent::-webkit-scrollbar { width: 6px; }
-  #diaryContent::-webkit-scrollbar-thumb {
+  #diaryContent::placeholder, #annivNote::placeholder { color: rgba(140, 230, 255, 0.22); }
+  #diaryContent::-webkit-scrollbar, #annivNote::-webkit-scrollbar { width: 6px; }
+  #diaryContent::-webkit-scrollbar-thumb, #annivNote::-webkit-scrollbar-thumb {
     background: rgba(90, 220, 255, 0.22);
     border-radius: 3px;
   }
@@ -958,12 +1353,12 @@
     cursor: not-allowed;
     box-shadow: none;
   }
-  #diaryEdit.active {
+  #diaryEdit.active, #annivEdit.active {
     border-color: rgba(255, 90, 140, 0.55);
     background: rgba(255, 90, 140, 0.1);
     color: #ffb3c6;
   }
-  #diaryWindow.editing {
+  #diaryWindow.editing, .holo-window.editing {
     border-color: rgba(255, 120, 190, 0.55);
     box-shadow:
       0 0 0 1px rgba(255, 120, 190, 0.08) inset,
@@ -972,18 +1367,22 @@
       0 30px 100px rgba(0, 0, 0, 0.7);
   }
   #diaryTitle[readonly],
-  #diaryContent[readonly] { cursor: default; }
-  #diaryTitle[readonly] {
+  #diaryContent[readonly],
+  #annivName[readonly],
+  #annivNote[readonly] { cursor: default; }
+  #diaryTitle[readonly],
+  #annivName[readonly] {
     border-bottom-color: rgba(90, 220, 255, 0.12);
     text-shadow: none;
   }
-  #diaryContent[readonly] {
+  #diaryContent[readonly],
+  #annivNote[readonly] {
     border-color: rgba(90, 220, 255, 0.08);
     color: #b8d9ec;
   }
   @media (max-width: 700px) {
-    #diaryOverlay { padding: 8px; }
-    #diaryWindow {
+    #diaryOverlay, .holo-overlay { padding: 8px; }
+    #diaryWindow, .holo-window {
       width: 96vw;
       height: 90vh;
     }
@@ -1000,21 +1399,53 @@
       grid-template-columns: 1fr;
       grid-template-rows: 170px 1fr;
     }
+    .holo-window .diary-body {
+      grid-template-rows: 210px 1fr;
+    }
     .diary-side {
       border-right: 0;
       border-bottom: 1px solid rgba(90, 220, 255, 0.14);
     }
     .diary-main { padding: 10px 12px; }
-    #diaryTitle { font-size: 17px; }
-    #diaryContent {
+    #diaryTitle, #annivName { font-size: 17px; }
+    #diaryContent, #annivNote {
       padding: 10px;
       font-size: 13px;
     }
     .diary-btn { padding: 7px 12px; }
+    .anniv-board-window {
+      width: 96vw;
+      height: 92vh;
+    }
+    .anniv-toolbar {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 10px;
+    }
+    .anniv-auth { margin: 8px 10px 0; }
+    .anniv-board {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      padding: 10px;
+    }
+    .anniv-note-card {
+      min-height: 150px;
+      padding: 16px 12px 12px;
+    }
+    .anniv-note-title { font-size: 16px; }
+    .anniv-note-snippet { -webkit-line-clamp: 2; }
+    .anniv-board-foot { padding: 8px 10px; }
+    .anniv-editor { padding: 10px; }
+    .anniv-note-editor {
+      width: 96%;
+      max-height: 92%;
+      padding: 16px 14px 12px;
+      transform: none;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .diary-scan, .diary-led { animation: none; }
-    #diaryOverlay, #diaryWindow { transition: none; }
+    #diaryOverlay, #diaryWindow, .holo-overlay, .holo-window { transition: none; }
   }
 </style>
 </head>
@@ -1118,6 +1549,81 @@
           </div>
         </footer>
       </main>
+    </div>
+  </div>
+</div>
+
+<div id="anniversaryOverlay" class="holo-overlay" aria-hidden="true">
+  <div id="anniversaryWindow" class="holo-window anniv-board-window" role="dialog" aria-modal="true" aria-labelledby="annivHeading">
+    <span class="diary-corner tl"></span>
+    <span class="diary-corner tr"></span>
+    <span class="diary-corner bl"></span>
+    <span class="diary-corner br"></span>
+    <div class="diary-scan"></div>
+    <header class="diary-head">
+      <div class="diary-brand">
+        <span class="diary-led"></span>
+        <span class="diary-name" id="annivHeading">HOLO-DATES</span>
+        <span class="diary-sub">/ 纪念日便签</span>
+      </div>
+      <span class="diary-clock" id="annivClock">SYS // ONLINE</span>
+      <button id="anniversaryClose" type="button" aria-label="关闭纪念日">×</button>
+    </header>
+    <div class="anniv-toolbar">
+      <div class="anniv-sync">
+        <span id="annivRepoState" class="diary-repo-state">GITHUB // 私有仓库未连接</span>
+        <button id="annivConnect" type="button">连接</button>
+      </div>
+      <div class="anniv-toolbar-actions">
+        <span id="annivCount" class="anniv-count-badge">0 NOTES</span>
+        <button id="annivNew" class="anniv-new-btn" type="button">+ 新建便签</button>
+      </div>
+    </div>
+    <div id="annivAuth" class="anniv-auth" aria-hidden="true">
+      <input id="annivToken" type="password" autocomplete="new-password" placeholder="fine-grained token · Contents RW" aria-label="GitHub token">
+      <div class="diary-auth-actions">
+        <button id="annivAuthSave" type="button">连接</button>
+        <button id="annivAuthCancel" type="button">取消</button>
+      </div>
+      <p class="diary-auth-note">与日记共用同一个私有仓库 token；只保存在当前页面内存中，刷新后需重新输入。</p>
+    </div>
+    <div id="annivBoard" class="anniv-board" aria-label="纪念日便签"></div>
+    <div class="anniv-board-foot">
+      <span>点击便签查看 / 编辑</span>
+      <span>HOLO-DATES // PRIVATE REPO</span>
+    </div>
+    <div id="annivEditor" class="anniv-editor" aria-hidden="true">
+      <div id="annivEditorBackdrop" class="anniv-editor-backdrop"></div>
+      <div id="annivEditorCard" class="anniv-note-editor" role="dialog" aria-modal="true" aria-labelledby="annivEditorTitle">
+        <span class="anniv-note-pin"></span>
+        <div class="anniv-editor-head">
+          <span id="annivEditorTitle">NOTE // VIEW</span>
+          <button id="annivEditorClose" type="button" aria-label="关闭便签">×</button>
+        </div>
+        <div class="anniv-editor-meta">
+          <span id="annivMeta" class="anniv-meta">NEW DATE // VIEW</span>
+          <span id="annivCountdown" class="anniv-countdown">—</span>
+        </div>
+        <input id="annivName" type="text" maxlength="80" autocomplete="off" placeholder="纪念日名称，例如：在一起" aria-label="纪念日名称" readonly>
+        <div class="anniv-date-row">
+          <label class="anniv-date-label">DATE
+            <input id="annivDate" type="date" aria-label="纪念日日期" disabled>
+          </label>
+          <label class="anniv-yearly">
+            <input id="annivYearly" type="checkbox" checked disabled>
+            <span>每年重复</span>
+          </label>
+        </div>
+        <textarea id="annivNote" class="anniv-note" placeholder="写一句关于这个日子的备注……" aria-label="纪念日备注" readonly></textarea>
+        <footer class="diary-foot">
+          <span id="annivSaveState" class="diary-save-state" aria-live="polite">VIEW // 点击编辑开始</span>
+          <div class="diary-actions">
+            <button id="annivDelete" class="diary-btn danger" type="button">删除</button>
+            <button id="annivEdit" class="diary-btn" type="button">编辑</button>
+            <button id="annivSave" class="diary-btn primary" type="button" disabled>保存</button>
+          </div>
+        </footer>
+      </div>
     </div>
   </div>
 </div>
@@ -2574,6 +3080,7 @@ const termHints = document.getElementById('termHints');
 
 let termOpen = false;
 let diaryOpen = false;
+let annivOpen = false;
 let historyOpen = false;
 let hintsOpen = false;
 let hintsTouched = false;
@@ -2749,22 +3256,69 @@ function buildHints() {
   }
 }
 
-const COMMAND_GROUP_ORDER = ['日记', '信息', '特效', '视角', '终端'];
+const SOUND_SOURCES = {
+  meep: ['sounds/meep.mp3', 'sounds/meep.wav', 'sounds/meep.ogg'],
+  guagua: ['sounds/guagua.mp3', 'sounds/guagua.wav', 'sounds/guagua.ogg']
+};
+const soundPlayers = new Map();
+
+function playSound(name, label) {
+  let audio = soundPlayers.get(name);
+  if (!audio) {
+    audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 0.65;
+    soundPlayers.set(name, audio);
+  }
+  const sources = SOUND_SOURCES[name] || [];
+  const trySource = (index) => {
+    if (index >= sources.length) {
+      termLine('⚠ 还没有找到 ' + (label || name) + ' 音效文件', 'warn');
+      termLine('  把 ' + name + '.mp3 / .wav / .ogg 放到 sounds/ 目录即可', 'dim');
+      markHistoryNew();
+      return;
+    }
+    try {
+      audio.src = new URL(sources[index], window.location.href).href;
+      audio.currentTime = 0;
+      const playback = audio.play();
+      if (playback && typeof playback.catch === 'function') {
+        playback.catch(err => {
+          if (err && err.name === 'NotAllowedError') {
+            termLine('⚠ 浏览器阻止了播放，请再点一次命令', 'warn');
+            markHistoryNew();
+            return;
+          }
+          trySource(index + 1);
+        });
+      }
+    } catch (err) {
+      trySource(index + 1);
+    }
+  };
+  trySource(0);
+}
+
+const COMMAND_GROUP_ORDER = ['回忆', '音效', '帮助', '特效', '视角', '终端'];
 
 const COMMAND_DEFS = [
-  { cmd: 'diary', group: '日记', aliases: ['日记', 'journal'], desc: '打开全息日记', run: () => {
+  { cmd: 'diary', group: '回忆', aliases: ['日记', 'journal'], desc: '打开全息日记', run: () => {
       termLine('✦ 全息日记已展开。', 'ok');
       openDiary();
     } },
-  { cmd: 'help', group: '信息', desc: '查看所有命令', run: () => { setPanel('hints', true); showHelp(); } },
-  { cmd: 'date', group: '信息', desc: '查看纪念日信息', run: () => {
-      termLine('纪念日: 2026-06-22 00:00:00', 'ok');
-      termLine(captionText, 'ok');
+  { cmd: 'date', group: '回忆', desc: '查看纪念日信息', run: () => {
+      termLine('✦ 纪念日信息已展开。', 'ok');
+      openAnniversaries();
     } },
-  { cmd: 'whoami', group: '信息', desc: '我是谁', run: () => {
-      termLine('chitori ✦ tarstar', 'ok');
-      termLine('uid=1(us) gid=1(us) groups=1(us),0(root)', 'dim');
+  { cmd: 'meep', group: '音效', desc: '播放 meep 音效', run: () => {
+      termLine('♪ MEEP', 'ok');
+      playSound('meep', 'meep');
     } },
+  { cmd: 'guagua', group: '音效', desc: '播放夜鹭音效', run: () => {
+      termLine('♪ GUAGUA', 'ok');
+      playSound('guagua', '夜鹭');
+    } },
+  { cmd: 'help', group: '帮助', desc: '查看所有命令', run: () => { setPanel('hints', true); showHelp(); } },
   { cmd: 'meteor', group: '特效', desc: '来一场流星雨', run: () => {
       FX.meteor(28);
       termLine('✦ 流星雨已抵达。', 'ok');
@@ -2822,6 +3376,16 @@ termInput.addEventListener('keydown', (e) => {
 
 window.addEventListener('keydown', (e) => {
   if (e.isComposing || e.key !== 'Escape') return;
+  if (annivEditorOpen) {
+    e.preventDefault();
+    closeAnnivEditor();
+    return;
+  }
+  if (annivOpen) {
+    e.preventDefault();
+    closeAnniversaries();
+    return;
+  }
   if (diaryOpen) {
     e.preventDefault();
     closeDiary();
@@ -2843,6 +3407,7 @@ const DIARY_PRIVATE = true;
 const DIARY_REPO = 'ShawTarstar/our-diary';
 const DIARY_BRANCH = 'main';
 const DIARY_DIR = 'diaries';
+const ANNIVERSARY_DIR = 'anniversaries';
 const DIARY_API = 'https://api.github.com';
 const DIARY_CREATORS = ['chitori', 'tarstar', 'kaxx'];
 
@@ -3683,6 +4248,798 @@ diaryTokenInput.addEventListener('keydown', (e) => {
 
 setDiaryRepoState('read');
 applyDiaryCreator(diaryLastCreator);
+
+/* ============ 6.7 纪念日（私有仓库 Markdown） ============ */
+const anniversaryOverlay = document.getElementById('anniversaryOverlay');
+const anniversaryWindow = document.getElementById('anniversaryWindow');
+const anniversaryClose = document.getElementById('anniversaryClose');
+const annivNewBtn = document.getElementById('annivNew');
+const annivBoard = document.getElementById('annivBoard');
+const annivCount = document.getElementById('annivCount');
+const annivEditor = document.getElementById('annivEditor');
+const annivEditorBackdrop = document.getElementById('annivEditorBackdrop');
+const annivEditorCard = document.getElementById('annivEditorCard');
+const annivEditorClose = document.getElementById('annivEditorClose');
+const annivEditorTitle = document.getElementById('annivEditorTitle');
+const annivName = document.getElementById('annivName');
+const annivDate = document.getElementById('annivDate');
+const annivYearly = document.getElementById('annivYearly');
+const annivNote = document.getElementById('annivNote');
+const annivMeta = document.getElementById('annivMeta');
+const annivCountdown = document.getElementById('annivCountdown');
+const annivSaveState = document.getElementById('annivSaveState');
+const annivSaveBtn = document.getElementById('annivSave');
+const annivDeleteBtn = document.getElementById('annivDelete');
+const annivEditBtn = document.getElementById('annivEdit');
+const annivClock = document.getElementById('annivClock');
+const annivRepoState = document.getElementById('annivRepoState');
+const annivConnect = document.getElementById('annivConnect');
+const annivAuth = document.getElementById('annivAuth');
+const annivTokenInput = document.getElementById('annivToken');
+const annivAuthSave = document.getElementById('annivAuthSave');
+const annivAuthCancel = document.getElementById('annivAuthCancel');
+
+let annivEntries = [];
+let annivActiveId = null;
+let annivEditing = false;
+let annivEditSnapshot = null;
+let annivDirty = false;
+let annivEditorOpen = false;
+let annivEditorCloseArmed = false;
+let annivEditorCloseTimer = null;
+let annivCloseArmed = false;
+let annivCloseTimer = null;
+let annivDeleteArmed = false;
+let annivDeleteTimer = null;
+let annivClockTimer = null;
+let annivLoading = false;
+let annivSaving = false;
+let annivLoaded = false;
+
+function annivToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function annivDateString(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function parseAnnivDate(str) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatAnnivDate(d) {
+  return d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate());
+}
+
+function annivTintFor(seed) {
+  const palette = ['tint-cyan', 'tint-pink', 'tint-violet', 'tint-amber'];
+  let hash = 0;
+  const text = String(seed || '');
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return palette[hash % palette.length];
+}
+
+function applyAnnivTint(seed) {
+  const tint = annivTintFor(seed);
+  annivEditorCard.className = 'anniv-note-editor ' + tint;
+  return tint;
+}
+
+function getAnnivInfo(entry) {
+  const base = parseAnnivDate(entry.date) || annivToday();
+  const today = annivToday();
+  let next;
+  if (entry.yearly) {
+    next = new Date(today.getFullYear(), base.getMonth(), base.getDate());
+    if (next < today) next = new Date(today.getFullYear() + 1, base.getMonth(), base.getDate());
+  } else {
+    next = new Date(base);
+  }
+  const days = Math.round((next - today) / 86400000);
+  let label;
+  let cls = '';
+  if (days === 0) {
+    label = '就是今天';
+    cls = 'today';
+  } else if (days > 0) {
+    label = '还有 ' + days + ' 天';
+  } else {
+    label = '已经 ' + (-days) + ' 天';
+    cls = 'past';
+  }
+  return { base, next, days, label, cls };
+}
+
+function annivSortKey(entry) {
+  const info = getAnnivInfo(entry);
+  return info.days >= 0 ? info.days : 100000 - info.days;
+}
+
+function newAnnivFileName(ts) {
+  const d = new Date(ts);
+  const rand = Math.random().toString(36).slice(2, 5);
+  return 'anniversary-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds()) + '-' + rand + '.md';
+}
+
+function buildAnnivMarkdown(name, date, yearly, note, createdAt, updatedAt) {
+  return '---\n' +
+    'title: ' + JSON.stringify(name || '未命名纪念日') + '\n' +
+    'date: ' + date + '\n' +
+    'yearly: ' + (yearly ? 'true' : 'false') + '\n' +
+    'created: ' + isoLocal(createdAt) + '\n' +
+    'updated: ' + isoLocal(updatedAt) + '\n' +
+    '---\n\n' +
+    String(note || '').replace(/\r\n/g, '\n');
+}
+
+function parseAnnivMarkdown(name, text) {
+  let title = name.replace(/\.md$/i, '');
+  let date = '';
+  let yearly = true;
+  let note = text;
+  let createdAt = 0;
+  let updatedAt = 0;
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
+  if (m) {
+    const fm = m[1];
+    const get = key => {
+      const mm = new RegExp('^' + key + ':\\s*(.*)$', 'm').exec(fm);
+      if (!mm) return '';
+      let v = mm[1].trim();
+      if (v.startsWith('"')) {
+        try { v = JSON.parse(v); } catch (e) { v = v.slice(1, -1); }
+      } else if (v.startsWith("'") && v.endsWith("'")) {
+        v = v.slice(1, -1);
+      }
+      return v;
+    };
+    title = get('title') || title;
+    const ds = get('date');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) date = ds;
+    const ys = get('yearly');
+    yearly = ys ? /^true$/i.test(ys) : true;
+    const c = Date.parse(get('created'));
+    const u = Date.parse(get('updated'));
+    createdAt = Number.isNaN(c) ? 0 : c;
+    updatedAt = Number.isNaN(u) ? createdAt : u;
+    note = m[2].replace(/^\r?\n/, '');
+  }
+  if (!date) date = annivDateString(annivToday());
+  if (!createdAt) createdAt = Date.now();
+  if (!updatedAt) updatedAt = createdAt;
+  return { name, title, date, yearly, note, createdAt, updatedAt };
+}
+
+function setAnnivStatus(text, cls) {
+  annivSaveState.textContent = text;
+  annivSaveState.className = 'diary-save-state' + (cls ? ' ' + cls : '');
+}
+
+function setAnnivRepoState(mode) {
+  annivRepoState.classList.remove('online', 'err');
+  if (mode === 'loading') {
+    annivRepoState.textContent = 'GITHUB // 读取中…';
+  } else if (mode === 'error') {
+    annivRepoState.textContent = 'GITHUB // 连接失败';
+    annivRepoState.classList.add('err');
+  } else {
+    annivRepoState.textContent = diaryToken ? 'GITHUB // 私有仓库已连接' : 'GITHUB // 私有仓库未连接';
+    if (diaryToken) annivRepoState.classList.add('online');
+  }
+  annivConnect.textContent = diaryToken ? '断开' : '连接';
+}
+
+function showAnnivAuth(show) {
+  annivAuth.classList.toggle('show', show);
+  annivAuth.setAttribute('aria-hidden', String(!show));
+  if (show) setTimeout(() => annivTokenInput.focus(), 50);
+  else annivTokenInput.value = '';
+}
+
+function updateAnnivClock() {
+  const d = new Date();
+  annivClock.textContent = 'SYS // ' + d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+function startAnnivClock() {
+  updateAnnivClock();
+  clearInterval(annivClockTimer);
+  annivClockTimer = setInterval(updateAnnivClock, 1000);
+}
+
+function stopAnnivClock() {
+  clearInterval(annivClockTimer);
+  annivClockTimer = null;
+}
+
+function updateAnnivMeta() {
+  const entry = annivEntries.find(e => e.id === annivActiveId);
+  let source = entry;
+  if (!source && annivEditing && annivDate.value) source = { date: annivDate.value, yearly: annivYearly.checked };
+  const mode = annivEditing ? 'EDITING' : 'VIEW';
+  annivEditorTitle.textContent = 'NOTE // ' + mode;
+  if (source) {
+    const info = getAnnivInfo(source);
+    annivMeta.textContent = (source.yearly ? 'NEXT // ' + formatAnnivDate(info.next) : 'DATE // ' + formatAnnivDate(info.base)) + ' // ' + mode;
+    annivCountdown.textContent = info.label;
+    annivCountdown.className = 'anniv-countdown' + (info.cls ? ' ' + info.cls : '');
+  } else {
+    annivMeta.textContent = 'NEW DATE // ' + mode;
+    annivCountdown.textContent = '—';
+    annivCountdown.className = 'anniv-countdown';
+  }
+}
+
+function setAnnivEditing(on) {
+  annivEditing = on;
+  annivName.readOnly = !on;
+  annivDate.disabled = !on;
+  annivYearly.disabled = !on;
+  annivNote.readOnly = !on;
+  annivSaveBtn.disabled = !on;
+  annivEditBtn.textContent = on ? '取消' : '编辑';
+  annivEditBtn.classList.toggle('active', on);
+  anniversaryWindow.classList.toggle('editing', on);
+  if (!on) annivEditSnapshot = null;
+  updateAnnivMeta();
+}
+
+function startAnnivEditing() {
+  if (annivEditing) return;
+  annivEditSnapshot = { name: annivName.value, date: annivDate.value, yearly: annivYearly.checked, note: annivNote.value };
+  annivDirty = false;
+  setAnnivEditing(true);
+  setAnnivStatus(annivActiveId ? 'EDITING // 修改后点击保存' : 'EDITING // 新纪念日', 'warn');
+  annivName.focus();
+}
+
+function cancelAnnivEditing() {
+  if (!annivEditing) return;
+  if (annivEditSnapshot) {
+    annivName.value = annivEditSnapshot.name;
+    annivDate.value = annivEditSnapshot.date;
+    annivYearly.checked = annivEditSnapshot.yearly;
+    annivNote.value = annivEditSnapshot.note;
+  }
+  annivDirty = false;
+  setAnnivEditing(false);
+  updateAnnivMeta();
+  setAnnivStatus('VIEW // 已取消编辑', '');
+  resetAnnivDelete();
+}
+
+function resetAnnivDelete() {
+  annivDeleteArmed = false;
+  clearTimeout(annivDeleteTimer);
+  annivDeleteTimer = null;
+  annivDeleteBtn.textContent = '删除';
+  annivDeleteBtn.classList.remove('armed');
+}
+
+function renderAnnivList() {
+  annivBoard.innerHTML = '';
+  if (annivLoading) {
+    const loading = document.createElement('div');
+    loading.className = 'anniv-board-status';
+    loading.textContent = 'LOADING // 正在读取纪念日…';
+    annivBoard.appendChild(loading);
+    annivCount.textContent = '—';
+    return;
+  }
+  const sorted = [...annivEntries].sort((a, b) => annivSortKey(a) - annivSortKey(b));
+  if (!sorted.length) {
+    const hint = document.createElement('div');
+    hint.className = 'anniv-board-status';
+    hint.textContent = '还没有便签，写下第一个纪念日吧';
+    annivBoard.appendChild(hint);
+  }
+  for (const entry of sorted) {
+    const info = getAnnivInfo(entry);
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.dataset.id = entry.id;
+    card.className = 'anniv-note-card ' + annivTintFor(entry.title + entry.id);
+    let hash = 0;
+    const seed = entry.title + entry.id;
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    card.style.setProperty('--rot', (((hash % 7) - 3) * 0.5) + 'deg');
+
+    const pin = document.createElement('span');
+    pin.className = 'anniv-note-pin';
+
+    const top = document.createElement('span');
+    top.className = 'anniv-note-top';
+    const date = document.createElement('span');
+    date.className = 'anniv-note-date';
+    date.textContent = formatAnnivDate(info.base);
+    top.appendChild(date);
+    if (entry.yearly) {
+      const badge = document.createElement('span');
+      badge.className = 'anniv-yearly-badge';
+      badge.textContent = '每年';
+      top.appendChild(badge);
+    }
+
+    const title = document.createElement('span');
+    title.className = 'anniv-note-title';
+    title.textContent = entry.title;
+
+    const count = document.createElement('span');
+    count.className = 'anniv-note-count' + (info.cls ? ' ' + info.cls : '');
+    count.textContent = info.label;
+
+    const snippetText = String(entry.note || '').trim();
+    const snippet = document.createElement('span');
+    snippet.className = 'anniv-note-snippet';
+    snippet.textContent = snippetText || '——';
+
+    const next = document.createElement('span');
+    next.className = 'anniv-note-next';
+    next.textContent = entry.yearly ? '下次 ' + formatAnnivDate(info.next) : '一次性纪念日';
+
+    card.appendChild(pin);
+    card.appendChild(top);
+    card.appendChild(title);
+    card.appendChild(count);
+    card.appendChild(snippet);
+    card.appendChild(next);
+    card.addEventListener('click', () => openAnnivEditor(entry.id, false));
+    annivBoard.appendChild(card);
+  }
+
+  const newCard = document.createElement('button');
+  newCard.type = 'button';
+  newCard.className = 'anniv-note-card anniv-note-new';
+  const plus = document.createElement('span');
+  plus.className = 'anniv-new-plus';
+  plus.textContent = '+';
+  const label = document.createElement('span');
+  label.className = 'anniv-new-label';
+  label.textContent = '新建便签';
+  newCard.appendChild(plus);
+  newCard.appendChild(label);
+  newCard.addEventListener('click', () => newAnniv(true));
+  annivBoard.appendChild(newCard);
+  annivCount.textContent = sorted.length + ' NOTES';
+}
+
+async function fetchAnnivFile(file) {
+  const data = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + file.path + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+  const text = decodeBase64Utf8(data.content);
+  const entry = parseAnnivMarkdown(file.name, text);
+  entry.id = file.path;
+  entry.path = file.path;
+  entry.sha = file.sha;
+  return entry;
+}
+
+async function loadAnniversariesFromGitHub() {
+  if (annivLoading) return;
+  annivLoading = true;
+  setAnnivRepoState('loading');
+  setAnnivStatus('LOADING // 正在读取纪念日…', 'warn');
+  renderAnnivList();
+  try {
+    const list = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + ANNIVERSARY_DIR + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+    const files = Array.isArray(list)
+      ? list.filter(f => f.type === 'file' && /\.md$/i.test(f.name) && !/^readme\.md$/i.test(f.name))
+      : [];
+    const settled = await Promise.allSettled(files.map(fetchAnnivFile));
+    annivEntries = settled
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value)
+      .sort((a, b) => annivSortKey(a) - annivSortKey(b));
+    annivLoaded = true;
+    setAnnivRepoState('read');
+  } catch (err) {
+    if (err.status === 404) {
+      try {
+        await ghFetch('/repos/' + DIARY_REPO);
+        annivEntries = [];
+        annivLoaded = true;
+        setAnnivRepoState('read');
+        setAnnivStatus('GITHUB // 纪念日目录为空，写第一个吧', '');
+      } catch (repoErr) {
+        annivEntries = [];
+        annivLoaded = false;
+        diaryToken = '';
+        setDiaryRepoState('read');
+        showAnnivAuth(true);
+        setAnnivRepoState('error');
+        setAnnivStatus('GITHUB // 仓库不存在或无权限', 'err');
+      }
+    } else {
+      annivEntries = [];
+      annivLoaded = false;
+      if (err.status === 401 || err.status === 403) {
+        diaryToken = '';
+        setDiaryRepoState('read');
+        showAnnivAuth(true);
+      }
+      setAnnivRepoState('error');
+      setAnnivStatus('GITHUB // ' + err.message, 'err');
+    }
+  } finally {
+    annivLoading = false;
+    renderAnnivList();
+    updateAnnivMeta();
+  }
+}
+
+async function connectAnniversaries() {
+  const token = annivTokenInput.value.trim();
+  if (!token) {
+    setAnnivStatus('TOKEN REQUIRED // 请输入 GitHub token', 'warn');
+    return;
+  }
+  diaryToken = token;
+  showAnnivAuth(false);
+  setDiaryRepoState('read');
+  setAnnivRepoState('loading');
+  setAnnivStatus('GITHUB // 正在验证 token…', 'warn');
+  await loadAnniversariesFromGitHub();
+  if (!annivLoaded) return;
+  renderAnnivList();
+  if (annivEditorOpen) {
+    setAnnivStatus(annivEditing ? 'EDITING // 已连接，可以保存' : 'VIEW // 已连接，点击编辑开始', 'ok');
+    if (annivEditing) annivName.focus();
+    else annivEditBtn.focus();
+  } else {
+    annivNewBtn.focus();
+  }
+}
+
+async function saveAnniv(silent) {
+  if (!annivEditing) {
+    if (!silent) setAnnivStatus('VIEW // 请先点击编辑', 'warn');
+    return false;
+  }
+  if (annivSaving) return false;
+  const name = annivName.value.trim();
+  const date = annivDate.value;
+  const yearly = annivYearly.checked;
+  const note = annivNote.value;
+  if (!name) {
+    setAnnivStatus('NAME REQUIRED // 请填写纪念日名称', 'warn');
+    return false;
+  }
+  if (!parseAnnivDate(date)) {
+    setAnnivStatus('DATE REQUIRED // 请选择日期', 'warn');
+    return false;
+  }
+  if (!diaryToken) {
+    showAnnivAuth(true);
+    setAnnivStatus('GITHUB // 请先连接 GitHub 后保存', 'warn');
+    return false;
+  }
+  annivSaving = true;
+  setAnnivStatus('SYNCING // 正在提交到 GitHub…', 'warn');
+  const now = Date.now();
+  const entry = annivEntries.find(e => e.id === annivActiveId);
+  const createdAt = entry ? entry.createdAt : now;
+  const fileName = entry ? entry.name : newAnnivFileName(now);
+  const path = entry ? entry.path : ANNIVERSARY_DIR + '/' + fileName;
+  const markdown = buildAnnivMarkdown(name, date, yearly, note, createdAt, now);
+  const body = {
+    message: 'date: ' + name,
+    content: encodeBase64Utf8(markdown),
+    branch: DIARY_BRANCH
+  };
+  try {
+    if (entry) {
+      const info = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + path + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+      if (info && info.sha) body.sha = info.sha;
+    }
+    const result = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const sha = result && result.content && result.content.sha;
+    if (entry) {
+      entry.title = name;
+      entry.date = date;
+      entry.yearly = yearly;
+      entry.note = note;
+      entry.updatedAt = now;
+      entry.sha = sha || entry.sha;
+    } else {
+      const newEntry = {
+        id: path,
+        name: fileName,
+        path,
+        sha,
+        title: name,
+        date,
+        yearly,
+        note,
+        createdAt: now,
+        updatedAt: now
+      };
+      annivEntries.push(newEntry);
+      annivActiveId = path;
+    }
+    annivDirty = false;
+    setAnnivEditing(false);
+    applyAnnivTint(name + (annivActiveId || ''));
+    renderAnnivList();
+    updateAnnivMeta();
+    setAnnivStatus('SYNCED // 已提交到 GitHub', 'ok');
+    return true;
+  } catch (err) {
+    if (err.status === 409) {
+      setAnnivStatus('CONFLICT // 文件已在别处更新，请关闭后重开', 'err');
+    } else if (err.status === 401 || err.status === 403) {
+      diaryToken = '';
+      setDiaryRepoState('read');
+      setAnnivRepoState('error');
+      showAnnivAuth(true);
+      setAnnivStatus('AUTH // token 无权限或已失效', 'err');
+    } else {
+      setAnnivStatus('ERROR // ' + err.message, 'err');
+    }
+    return false;
+  } finally {
+    annivSaving = false;
+  }
+}
+
+function openAnnivEditor(id, editing) {
+  const entry = id ? annivEntries.find(e => e.id === id) : null;
+  if (id && !entry) return;
+  annivActiveId = entry ? entry.id : null;
+  if (entry) {
+    annivName.value = entry.title;
+    annivDate.value = entry.date;
+    annivYearly.checked = entry.yearly;
+    annivNote.value = entry.note;
+  } else {
+    annivName.value = '';
+    annivDate.value = annivDateString(annivToday());
+    annivYearly.checked = true;
+    annivNote.value = '';
+  }
+  annivDirty = false;
+  annivEditorCloseArmed = false;
+  clearTimeout(annivEditorCloseTimer);
+  resetAnnivDelete();
+  annivEditorOpen = true;
+  annivEditor.classList.add('show');
+  annivEditor.setAttribute('aria-hidden', 'false');
+  applyAnnivTint(entry ? entry.title + entry.id : 'new-note');
+  setAnnivEditing(false);
+  if (editing) {
+    startAnnivEditing();
+  } else {
+    updateAnnivMeta();
+    setAnnivStatus('VIEW // 点击编辑开始', '');
+    setTimeout(() => annivEditBtn.focus(), 80);
+  }
+}
+
+function closeAnnivEditor(force) {
+  if (!annivEditorOpen) return;
+  if (annivEditing && annivDirty && !force && !annivEditorCloseArmed) {
+    annivEditorCloseArmed = true;
+    clearTimeout(annivEditorCloseTimer);
+    annivEditorCloseTimer = setTimeout(() => { annivEditorCloseArmed = false; }, 2500);
+    setAnnivStatus('UNSAVED // 再点一次关闭将丢弃修改', 'warn');
+    return;
+  }
+  annivEditorCloseArmed = false;
+  clearTimeout(annivEditorCloseTimer);
+  if (annivEditing) setAnnivEditing(false);
+  annivDirty = false;
+  annivEditorOpen = false;
+  annivEditor.classList.remove('show');
+  annivEditor.setAttribute('aria-hidden', 'true');
+  resetAnnivDelete();
+  annivActiveId = null;
+  annivNewBtn.focus();
+}
+
+function newAnniv(focus) {
+  if (!diaryToken) {
+    showAnnivAuth(true);
+    return;
+  }
+  openAnnivEditor(null, true);
+}
+
+function onAnnivInput() {
+  if (!annivEditing) return;
+  annivDirty = true;
+  updateAnnivMeta();
+  setAnnivStatus('EDITING // 未保存', 'warn');
+}
+
+async function handleAnnivDelete() {
+  if (!annivActiveId) {
+    setAnnivStatus('NO DATE // 没有可删除的纪念日', 'warn');
+    return;
+  }
+  if (!annivDeleteArmed) {
+    annivDeleteArmed = true;
+    annivDeleteBtn.textContent = '确认删除？';
+    annivDeleteBtn.classList.add('armed');
+    clearTimeout(annivDeleteTimer);
+    annivDeleteTimer = setTimeout(resetAnnivDelete, 3000);
+    return;
+  }
+  resetAnnivDelete();
+  const entry = annivEntries.find(e => e.id === annivActiveId);
+  if (!entry) return;
+  if (!diaryToken) {
+    showAnnivAuth(true);
+    setAnnivStatus('GITHUB // 请先连接后删除', 'warn');
+    return;
+  }
+  setAnnivStatus('DELETING // 正在从 GitHub 删除…', 'warn');
+  try {
+    const info = await ghFetch('/repos/' + DIARY_REPO + '/contents/' + entry.path + '?ref=' + encodeURIComponent(DIARY_BRANCH));
+    await ghFetch('/repos/' + DIARY_REPO + '/contents/' + entry.path, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'date: delete ' + entry.title,
+        sha: info.sha,
+        branch: DIARY_BRANCH
+      })
+    });
+    annivEntries = annivEntries.filter(e => e.id !== entry.id);
+    annivActiveId = null;
+    annivName.value = '';
+    annivDate.value = annivDateString(annivToday());
+    annivYearly.checked = true;
+    annivNote.value = '';
+    annivDirty = false;
+    renderAnnivList();
+    closeAnnivEditor(true);
+    annivNewBtn.focus();
+  } catch (err) {
+    if (err.status === 409 || err.status === 404) {
+      setAnnivStatus('CONFLICT // 文件已变化，请关闭后重开', 'err');
+    } else if (err.status === 401 || err.status === 403) {
+      diaryToken = '';
+      setDiaryRepoState('read');
+      setAnnivRepoState('error');
+      showAnnivAuth(true);
+      setAnnivStatus('AUTH // token 无权限或已失效', 'err');
+    } else {
+      setAnnivStatus('ERROR // ' + err.message, 'err');
+    }
+  }
+}
+
+async function openAnniversaries() {
+  if (annivOpen) return;
+  annivOpen = true;
+  annivEntries = [];
+  annivActiveId = null;
+  annivDirty = false;
+  annivLoaded = false;
+  annivEditorOpen = false;
+  annivEditorCloseArmed = false;
+  resetAnnivDelete();
+  annivEditor.classList.remove('show');
+  annivEditor.setAttribute('aria-hidden', 'true');
+  annivName.value = '';
+  annivDate.value = annivDateString(annivToday());
+  annivYearly.checked = true;
+  annivNote.value = '';
+  setAnnivEditing(false);
+  anniversaryOverlay.classList.add('show');
+  anniversaryOverlay.setAttribute('aria-hidden', 'false');
+  annivBoard.innerHTML = '<div class="anniv-board-status">LOADING // 正在读取纪念日…</div>';
+  annivCount.textContent = '—';
+  setAnnivRepoState('read');
+  startAnnivClock();
+  if (!diaryToken) {
+    annivLoaded = false;
+    showAnnivAuth(true);
+    renderAnnivList();
+    setTimeout(() => { if (annivOpen) annivTokenInput.focus(); }, 140);
+    return;
+  }
+  await loadAnniversariesFromGitHub();
+  if (!annivOpen) return;
+  renderAnnivList();
+  setTimeout(() => {
+    if (!annivOpen) return;
+    if (annivAuth.classList.contains('show')) annivTokenInput.focus();
+    else annivNewBtn.focus();
+  }, 140);
+}
+
+async function closeAnniversaries() {
+  if (!annivOpen) return;
+  if (annivEditorOpen) {
+    closeAnnivEditor();
+    return;
+  }
+  if (annivEditing && annivDirty && !annivCloseArmed) {
+    annivCloseArmed = true;
+    clearTimeout(annivCloseTimer);
+    annivCloseTimer = setTimeout(() => { annivCloseArmed = false; }, 2500);
+    setAnnivStatus('UNSAVED // 再点一次关闭将丢弃修改', 'warn');
+    return;
+  }
+  annivCloseArmed = false;
+  clearTimeout(annivCloseTimer);
+  if (annivEditing) setAnnivEditing(false);
+  annivDirty = false;
+  annivOpen = false;
+  anniversaryOverlay.classList.remove('show');
+  anniversaryOverlay.setAttribute('aria-hidden', 'true');
+  stopAnnivClock();
+  resetAnnivDelete();
+  showAnnivAuth(false);
+  if (termOpen) setTimeout(() => termInput.focus(), 60);
+  else starBtn.focus({ preventScroll: true });
+}
+
+anniversaryClose.addEventListener('click', closeAnniversaries);
+anniversaryOverlay.addEventListener('click', (e) => {
+  if (e.target === anniversaryOverlay) closeAnniversaries();
+});
+annivEditorClose.addEventListener('click', () => closeAnnivEditor());
+annivEditorBackdrop.addEventListener('click', () => closeAnnivEditor());
+annivNewBtn.addEventListener('click', () => newAnniv(true));
+annivSaveBtn.addEventListener('click', () => saveAnniv(false));
+annivDeleteBtn.addEventListener('click', handleAnnivDelete);
+annivEditBtn.addEventListener('click', () => {
+  if (annivEditing) cancelAnnivEditing();
+  else startAnnivEditing();
+});
+annivName.addEventListener('input', onAnnivInput);
+annivNote.addEventListener('input', onAnnivInput);
+annivDate.addEventListener('change', onAnnivInput);
+annivYearly.addEventListener('change', onAnnivInput);
+annivName.addEventListener('keydown', (e) => {
+  if (e.isComposing || !annivEditing) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    annivDate.focus();
+  }
+});
+anniversaryWindow.addEventListener('keydown', (e) => {
+  if (e.isComposing) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    saveAnniv(false);
+  }
+});
+annivConnect.addEventListener('click', () => {
+  if (diaryToken) {
+    diaryToken = '';
+    showAnnivAuth(false);
+    setDiaryRepoState('read');
+    setAnnivRepoState('read');
+    setAnnivStatus('GITHUB // 已断开，当前为只读', 'warn');
+  } else {
+    showAnnivAuth(true);
+  }
+});
+annivAuthSave.addEventListener('click', connectAnniversaries);
+annivAuthCancel.addEventListener('click', () => showAnnivAuth(false));
+annivTokenInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    connectAnniversaries();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    showAnnivAuth(false);
+  }
+});
+
+setAnnivRepoState('read');
 
 /* ============ 7. 启动 ============ */
 resizeAll();

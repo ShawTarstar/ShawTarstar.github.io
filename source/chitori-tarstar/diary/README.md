@@ -50,9 +50,27 @@ tarstar
 kaxx
 ```
 
+## 纪念日
+
+纪念日也保存在同一个私有仓库的 `anniversaries/` 目录，格式为：
+
+```markdown
+---
+title: "在一起"
+date: 2026-06-22
+yearly: true
+created: 2026-11-02T20:00:00+08:00
+updated: 2026-11-02T20:00:00+08:00
+---
+
+备注内容
+```
+
+`yearly: true` 表示每年重复；`yearly: false` 表示只计算一次。
+
 ## 注意
 
-- 私有仓库不会被公开读取；不连接 token 时页面无法读取日记。
+- 私有仓库不会被公开读取；不连接 token 时页面无法读取日记或纪念日。
 - 这个目录（博客仓库里的 `source/chitori-tarstar/diary/`）不再存放日记内容，只保留说明。
 - 如果改回公开仓库模式，把 `DIARY_PRIVATE` 设为 `false`，并可用 `scripts/diary-index.js` 生成静态索引。
 - 页面会通过 GitHub API 创建 `diaries/` 目录和 `.md` 文件，不需要手动初始化。
